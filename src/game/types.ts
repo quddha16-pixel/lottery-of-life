@@ -312,4 +312,5 @@ export interface LocalArea {
   animals: NearbyAnimal[];
   encounter?: Encounter;
   feedback?: string;
+  outcome?: { command: string; summary: string; changes: string[]; phases: number };
 }

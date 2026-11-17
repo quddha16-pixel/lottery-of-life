@@ -475,9 +475,7 @@ export function applyInteraction(
     case "nurse":
       if (!target?.alive)
         throw new Error("Your caregiver is no longer available.");
-      target.hunger = clamp(target.hunger + 9);
-      target.energy = clamp(target.energy - 7);
-      target.bond = clamp(target.bond + 3);
+      // Provisioning costs are charged by the shared feed resolver, including autonomy.
       return `${target.name} provides what her condition allows. Nursing also costs her energy and food.`;
     case "stay-close":
       if (target) {

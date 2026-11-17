@@ -1,3 +1,4 @@
+import { urgentNeed } from "./outcomes";
 import { SPECIES_RULES } from "../data/species-rules";
 import { speciesById } from "../data/species";
 import { describeSituation } from "./world";
@@ -5,6 +6,8 @@ import { dependent, locationNow, type Interaction } from "./wildlife";
 import type { GameState } from "./types";
 // Presentation only: no random draws, mutations, eligibility changes or simulation shortcuts.
 export function situationText(s: GameState) {
+  const urgent = urgentNeed(s);
+  if (urgent) return urgent;
   if (s.narration === "detailed") return describeSituation(s);
   const a = s.family[s.currentId!];
   const need =
@@ -41,10 +44,7 @@ export function eventText(text: string, mode: GameState["narration"]) {
     .replaceAll("persistent", "lasting")
     .replaceAll("metabolism", "daily needs")
     .replaceAll("senescence", "decline with age")
-    .replaceAll("Predation / conflict", "Predator or rival encounter")
-    .split(/(?<=[.!?])\s+/)
-    .slice(0, 2)
-    .join(" ");
+    .replaceAll("Predation / conflict", "Predator or rival encounter");
 }
 export function interactionText(s: GameState, option: Interaction) {
   if (s.narration === "detailed") return option;

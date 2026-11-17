@@ -147,6 +147,7 @@ const schema = z
           })
           .optional(),
         feedback: z.string().optional(),
+        outcome: z.object({ command: z.string().max(500), summary: z.string().max(5000), changes: z.array(z.string().max(500)).max(10), phases: whole.max(1460) }).optional(),
       })
       .optional(),
     pacing: z.enum(["immersive", "balanced", "story"]).default("immersive"),
