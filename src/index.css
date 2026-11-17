@@ -1,0 +1,128 @@
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/dm-sans/600.css";
+@import "@fontsource/libre-caslon-display/400.css";
+:root {
+  font-family: "DM Sans", system-ui, sans-serif;
+  color: #e7e7db;
+  background: #111713;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --bg: #111713;
+  --panel: #19211b;
+  --line: #303a30;
+  --muted: #a1ab9b;
+  --gold: #d6b66a;
+  --green: #acc99c;
+  --serif: "Libre Caslon Display", Georgia, serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+}
+button {
+  color: inherit;
+}
+button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+button,
+a,
+input,
+select,
+textarea {
+  outline-offset: 4px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--gold);
+}
+a {
+  color: var(--gold);
+  text-underline-offset: 3px;
+}
+button {
+  touch-action: manipulation;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1,
+h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+}
+h1 {
+  font-size: clamp(32px, 3.3vw, 47px);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+h2 {
+  font-size: 30px;
+  line-height: 1.17;
+}
+h3 {
+  font-size: 16px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+p {
+  line-height: 1.7;
+}
+i {
+  color: var(--muted);
+}
+small {
+  font-size: 11px;
+}
+::selection {
+  background: #d6b66a;
+  color: #171c15;
+}
+svg {
+  flex-shrink: 0;
+}
+button {
+  border: 0;
+}
+hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 26px 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
