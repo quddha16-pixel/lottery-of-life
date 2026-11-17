@@ -30,3 +30,11 @@ All species use one phase resolver. Each has saved, independent biological store
 - The mastery bonus is bounded to one species achievement per lifetime. Newborn abandonment still earns zero Coins, and reward settlement remains idempotent.
 
 Automated evidence is in `src/game/biology.test.ts`, `src/game/wildlife.test.ts` and production-bundle browser flows for all 13 species. Tests assert resource transfer, capabilities, other individuals' costs, persistent location data, mortality and progression; they do not merely compare labels.
+
+## Phase 3C reference/parameter corrections
+
+Elephant dependence is not a ban on every physical activity. The older early return hid even one-year digging until the juvenile stage at three years. Shared eligibility now lets a calf join wallowing from day 30 and help uncover shallow water from day 365, only beside a capable relative at a suitable wet location. The existing 365-day digging threshold is retained; 30 days is a conservative gameplay boundary, not a universal measured onset. Digging consumes the finite groundwater reserve and the relative's energy as well as the calf's. It does not grant independent nursing/foraging abilities or guarantee water.
+
+References: [San Diego Zoo elephant overview](https://animals.sandiegozoo.org/animals/elephant), [SDZ Wildlife Alliance development fact sheet](https://ielc.libguides.com/sdzg/factsheets/african_elephant/reproduction), and [Freeman et al. 2010 captive calf survey](https://pubmed.ncbi.nlm.nih.gov/20391463/). Wild summaries and captive observations report different trunk-use timings; these are context-dependent observations, not one precise universal drinking age. This change does not invent a new independent-drinking deadline.
+
+Leafcutter workers now carry a bounded leaf load before depositing at a nursery/garden. Leaves are not instant food; the existing fungus conversion still applies. Bumblebee nests use rounded wax cells/pots in the illustration, not honeybee hexagonal comb. Nestling robin food from a parent now fills the same bounded night reserve as its later independent feeding. This fixes the accidental exclusion of parental meals; it does not introduce free food or adult capabilities.

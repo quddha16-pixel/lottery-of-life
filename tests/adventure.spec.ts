@@ -131,24 +131,33 @@ test("a fresh ant develops through ordinary care, then gardens and harvests thro
   });
   if (await encounter.isVisible()) await encounter.click();
   s = await save(page);
-  const material = s.family[s.currentId].biology.stores.substrate;
+  const material = s.family[s.currentId].biology.stores.leafLoad;
   await page
     .getByRole("button", { name: /^Gather leaves for the colony/ })
     .click();
   s = await save(page);
-  expect(s.family[s.currentId].biology.stores.substrate).toBeGreaterThan(
+  expect(s.family[s.currentId].biology.stores.leafLoad).toBeGreaterThan(
     material,
   );
   await page
     .getByRole("button", { name: "Explain the last result", exact: true })
     .click();
-  await expect(page.getByRole("dialog")).toContainText("reaches the colony");
-  await expect(page.getByRole("dialog")).toContainText("Leaf material: +");
+  await expect(page.getByRole("dialog")).toContainText("carry leaf material");
+  await expect(page.getByRole("dialog")).toContainText("Carried leaves: +");
   await page.screenshot({
     path: `test-results/phase3c-ant-result-${test.info().project.name}.png`,
     animations: "disabled",
   });
   await page.keyboard.press("Escape");
+  await expect(page.locator(".carried-leaves")).toBeVisible();
+  await page.locator(".field-journey").click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /Travel here/ })
+    .click();
+  const delivered = await save(page);
+  expect(delivered.family[delivered.currentId].biology.stores.leafLoad).toBe(0);
+  expect(delivered.area.feedback).toContain("deliver leaf material");
   const kept = await save(page);
   await page.reload();
   expect(await save(page)).toEqual(kept);
@@ -163,6 +172,12 @@ test("field discoveries are optional, saved and do not spend a phase or random d
   await expect(page.getByRole("dialog")).toContainText(
     "African savanna elephant",
   );
+  await expect
+    .poll(async () => {
+      const state = await save(page);
+      return state.family[state.currentId].biology.skills["note:Biology"];
+    })
+    .toBe(1);
   const after = await save(page);
   expect(after.phase).toBe(before.phase);
   expect(after.rng).toBe(before.rng);
@@ -174,4 +189,64 @@ test("field discoveries are optional, saved and do not spend a phase or random d
   expect(loaded.family[loaded.currentId].biology.skills["note:Biology"]).toBe(
     1,
   );
+});
+
+test("a fresh bumblebee develops wings, visits flowers, carries pollen and feeds the brood", async ({
+  page,
+}) => {
+  await born(page, "bumblebee");
+  await expect(page.locator(".scene-player")).toHaveAttribute(
+    "data-stage",
+    "Egg",
+  );
+  for (let i = 0; i < 8; i++) {
+    const s = await save(page);
+    if (s.family[s.currentId].ageDays >= 25) break;
+    const encounter = page.getByRole("button", {
+      name: "Keep a cautious distance",
+      exact: true,
+    });
+    if (await encounter.isVisible()) await encounter.click();
+    else await page.getByRole("button", { name: /^Watch life unfold/ }).click();
+  }
+  let s = await save(page);
+  expect(s.family[s.currentId].alive).toBe(true);
+  expect(s.family[s.currentId].ageDays).toBe(25);
+  await expect(page.locator(".scene-player")).toHaveAttribute(
+    "data-stage",
+    "Worker",
+  );
+  await page.locator(".field-journey").click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /Travel here/ })
+    .click();
+  const encounter = page.getByRole("button", {
+    name: "Keep a cautious distance",
+    exact: true,
+  });
+  if (await encounter.isVisible()) await encounter.click();
+  await page.getByRole("button", { name: /^Gather nectar and pollen/ }).click();
+  s = await save(page);
+  expect(s.family[s.currentId].biology.stores.pollen).toBeGreaterThan(0);
+  await page.screenshot({
+    path: `test-results/phase3c-bee-pollen-${test.info().project.name}.png`,
+    animations: "disabled",
+  });
+  await page.locator(".field-journey").click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /Travel here/ })
+    .click();
+  s = await save(page);
+  const brood = s.family[s.currentId].biology.stores.broodFood;
+  await page
+    .getByRole("button", { name: /^Deliver pollen to the brood/ })
+    .click();
+  s = await save(page);
+  expect(s.family[s.currentId].biology.stores.pollen).toBe(0);
+  expect(s.family[s.currentId].biology.stores.broodFood).toBeGreaterThan(brood);
+  const kept = await save(page);
+  await page.reload();
+  expect(await save(page)).toEqual(kept);
 });

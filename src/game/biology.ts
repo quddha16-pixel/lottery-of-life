@@ -28,8 +28,10 @@ export function initialBiology(animal: Individual): SpeciesState {
   };
 }
 export function ensureBiology(s: GameState) {
-  for (const animal of Object.values(s.family))
+  for (const animal of Object.values(s.family)) {
     animal.biology ??= initialBiology(animal);
+    if (animal.speciesId === "ant") animal.biology.stores.leafLoad ??= 0;
+  }
 }
 const skill = (s: GameState, key: string, n = 1) => {
   const b = a(s).biology!;
@@ -92,14 +94,42 @@ export function biologyActivities(s: GameState): BiologyActivity[] {
     detail: string,
     action: Action,
   ) => result.push({ id, title, detail, action });
-  if (dep) {
-    if (p.speciesId === "elephant" && p.ageDays >= 1 && companions(s).length)
+  if (p.speciesId === "elephant") {
+    const family = companions(s).filter((n) => n.energy > 25);
+    if (family.length && p.ageDays >= 1)
       add(
         "learn-water",
         "Learn a water route with the herd",
         "Remember this place with an older family member. Knowledge can guide later journeys.",
         "rest",
       );
+    // Conservative gameplay gates, not universal biological deadlines. Calves
+    // can join family activities while still relying on milk and protection.
+    if (where === "water" && (!dep || family.length > 0)) {
+      if (
+        p.ageDays >= 365 &&
+        b.stores.groundwater >= 5 &&
+        s.world!.moisture > 0.1
+      )
+        add(
+          "dig-water",
+          dep ? "Help the herd uncover water" : "Dig for shallow water",
+          "Use a finite groundwater reserve. A dependent calf needs a capable relative; both spend energy.",
+          "explore",
+        );
+      if (
+        p.ageDays >= 30 &&
+        s.world!.patches.find((x) => x.id === where)!.water > 0.3
+      )
+        add(
+          "wallow",
+          dep ? "Join the herd in the mud" : "Cool down with water and mud",
+          "Mud protects against heat for a while. A calf needs family nearby, and the local water supply shrinks.",
+          "shelter",
+        );
+    }
+  }
+  if (dep) {
     if (p.speciesId === "seal" && close(s).some((n) => n.role === "mother"))
       add(
         "recover-dive",
@@ -169,37 +199,6 @@ export function biologyActivities(s: GameState): BiologyActivity[] {
           "Hunt together",
           "A shared hunt uses your companions’ energy and shares a successful meal.",
           "feed",
-        );
-      break;
-    case "elephant":
-      if (companions(s).length)
-        add(
-          "learn-water",
-          "Learn the herd’s water routes",
-          "Remember places with older relatives. Their presence and trust matter.",
-          "rest",
-        );
-      if (
-        where === "water" &&
-        p.ageDays >= 365 &&
-        b.stores.groundwater >= 5 &&
-        s.world!.moisture > 0.1
-      )
-        add(
-          "dig-water",
-          "Dig for shallow water",
-          "Access a finite groundwater reserve. This costs energy and does not end drought.",
-          "explore",
-        );
-      if (
-        where === "water" &&
-        s.world!.patches.find((x) => x.id === where)!.water > 0.3
-      )
-        add(
-          "wallow",
-          "Cool down with water and mud",
-          "Mud protection fades over time. Using this water reduces the local supply.",
-          "shelter",
         );
       break;
     case "mallard":
@@ -534,7 +533,12 @@ export function reproductionPossible(s: GameState) {
 export function preferredFeedingNode(s: GameState) {
   const p = a(s),
     b = p.biology!;
-  if (p.speciesId === "ant") return b.stores.substrate < 5 ? "forage" : "home";
+  if (p.speciesId === "ant")
+    return b.stores.leafLoad > 0
+      ? "home"
+      : b.stores.substrate < 30
+        ? "forage"
+        : "home";
   if (p.speciesId === "bumblebee" && b.stores.pollen > 25) return "home";
   return p.speciesId === "seal"
     ? "forage"
@@ -629,6 +633,11 @@ export function applyBiologyActivity(
       }
       return "An older companion helps you remember this route. The memory remains after you part.";
     case "dig-water":
+      if (stage(p).dependent) {
+        const relative = companions(s).find((n) => n.energy > 25)!;
+        relative.energy = clamp(relative.energy - 8);
+        relative.engagedUntil = s.area!.ticks + 1;
+      }
       store(s, "groundwater", -5);
       patch.water = unit(patch.water + 0.12);
       s.world!.water = unit(s.world!.water + 0.005);
@@ -828,6 +837,7 @@ export function tickBiology(
     where = node(s),
     messages: string[] = [];
   messages.push(...syncDevelopment(s));
+  if (action === "learn") skill(s, "early-learning");
   const newStage = stage(p).name;
   if (["Egg", "Pupa"].includes(newStage)) {
     store(s, "reserves", -0.15);
@@ -855,8 +865,19 @@ export function tickBiology(
       }
       break;
     case "ant":
+      if (["home", "shade"].includes(where) && b.stores.leafLoad > 0) {
+        const unloaded = Math.min(b.stores.leafLoad, 100 - b.stores.substrate);
+        store(s, "leafLoad", -unloaded);
+        store(s, "substrate", unloaded);
+        if (unloaded > 0) {
+          p.colonyService += 2;
+          messages.push(
+            "Carried leaves reach the garden stores. They still need cultivation to become food.",
+          );
+        }
+      }
       if (fed && where === "forage") {
-        store(s, "substrate", 5);
+        store(s, "leafLoad", 5);
         s.world!.vegetation = unit(s.world!.vegetation - 0.003);
       }
       if (
@@ -872,13 +893,18 @@ export function tickBiology(
           store(s, "contamination", -0.5);
         }
       }
-      if (s.area!.animals.some((n) => n.alive && n.role === "companion" && n.health > 30 && n.hunger < 85)) {
+      if (
+        s.area!.animals.some(
+          (n) =>
+            n.alive && n.role === "companion" && n.health > 30 && n.hunger < 85,
+        )
+      ) {
         store(s, "substrate", s.world!.vegetation * 0.2);
         if (b.stores.substrate > 0) {
           store(s, "substrate", -0.1);
           store(s, "fungus", 0.2);
           // Background workers maintain the garden while brood cannot act.
-        store(s, "contamination", -0.85);
+          store(s, "contamination", -0.85);
         }
       }
       store(s, "contamination", 0.3 + (s.world!.moisture > 0.85 ? 0.5 : 0));
@@ -974,7 +1000,14 @@ export function tickBiology(
         store(s, key, -0.4 - s.world!.competition * 0.5);
       break;
     case "robin":
-      if (fed) store(s, "fat", 20);
+      // A nestling's parent-delivered food also builds its finite reserves.
+      // Milk-fed mammals must not acquire plant/fat stocks through this bird rule.
+      if (
+        fed ||
+        (action === "feed" &&
+          s.journal.at(-1)?.text.includes("nursery provides nourishment"))
+      )
+        store(s, "fat", 20);
       if (s.phase === 3) {
         const demand =
           (s.environment!.temperature < 8 ? 18 : 8) *
@@ -1010,34 +1043,94 @@ export function tickBiology(
     p.stats[key] = clamp(p.stats[key]);
   return messages;
 }
+export function speciesAchievementProgress(
+  animal: Individual,
+): { label: string; value: number; target: number }[] {
+  const b = animal.biology;
+  if (!b) return [];
+  const k = b.skills;
+  const step = (label: string, key: string, target: number) => ({
+    label,
+    value: Math.min(target, k[key] ?? 0),
+    target,
+  });
+  switch (animal.speciesId) {
+    case "bumblebee":
+      return [step("Pollen deliveries", "activity:deliver-pollen", 3)];
+    case "ant":
+      return [
+        step("Garden care", "garden-tended", 3),
+        step("Leaf harvests", "leaves-harvested", 2),
+      ];
+    case "rabbit":
+      return [
+        step("Sheltered digestion", "activity:digest-fiber", 3),
+        step("Warren care", "activity:maintain-warren", 2),
+      ];
+    case "wolf":
+      return [step("Shared meals", "shared-meals", 2)];
+    case "elephant":
+      return [
+        {
+          label: "Familiar water routes",
+          value: Math.min(
+            2,
+            Object.keys(k).filter((x) => x.startsWith("water:") && k[x] >= 3)
+              .length,
+          ),
+          target: 2,
+        },
+      ];
+    case "mallard":
+      return [
+        step("Dabbling", "activity:dabble", 3),
+        step("Preening", "activity:preen", 2),
+        {
+          label: "Flight development",
+          value: Math.min(60, animal.ageDays),
+          target: 60,
+        },
+      ];
+    case "octopus":
+      return [
+        step("Den care", "activity:claim-den", 2),
+        step("Camouflage practice", "camouflage", 3),
+      ];
+    case "meerkat":
+      return [
+        step("Lookout duty", "activity:sentinel", 3),
+        step("Helping pups", "activity:help-pups", 2),
+      ];
+    case "bullfrog":
+      return [
+        {
+          label: "Metamorphosis",
+          value: b.milestones.includes("stage:Froglet") ? 1 : 0,
+          target: 1,
+        },
+        step("Ambush feeding", "activity:ambush", 2),
+      ];
+    case "raccoon":
+      return [
+        step("Shallow-water searches", "aquatic-search", 2),
+        step("Plant searches", "plant-search", 2),
+      ];
+    case "fox":
+      return [step("Cache recoveries", "cache-recovery", 2)];
+    case "robin":
+      return [step("A sheltered cold night", "cold-nights", 1)];
+    case "seal":
+      return [step("Practiced deeper foraging", "activity:deep-dive", 2)];
+    default:
+      return [];
+  }
+}
 export function speciesAchievements(animal: Individual): string[] {
   const b = animal.biology;
   if (!b) return [];
-  const k = b.skills,
-    done = (key: string, n = 1) => (k[key] ?? 0) >= n;
-  const earned: Record<string, boolean> = {
-    bumblebee: done("activity:deliver-pollen", 3),
-    ant: done("garden-tended", 3) && done("leaves-harvested", 2),
-    rabbit:
-      done("activity:digest-fiber", 3) && done("activity:maintain-warren", 2),
-    wolf: done("shared-meals", 2),
-    elephant:
-      Object.keys(k).filter((x) => x.startsWith("water:") && k[x] >= 3)
-        .length >= 2,
-    mallard:
-      done("activity:dabble", 3) &&
-      done("activity:preen", 2) &&
-      animal.ageDays >= 60,
-    octopus: done("activity:claim-den", 2) && done("camouflage", 3),
-    meerkat: done("activity:sentinel", 3) && done("activity:help-pups", 2),
-    bullfrog:
-      b.milestones.includes("stage:Froglet") && done("activity:ambush", 2),
-    raccoon: done("aquatic-search", 2) && done("plant-search", 2),
-    fox: done("cache-recovery", 2),
-    robin: done("cold-nights"),
-    seal: done("activity:deep-dive", 2),
-  };
-  return earned[animal.speciesId]
+  return speciesAchievementProgress(animal).every(
+    (step) => step.value >= step.target,
+  )
     ? [SPECIES_RULES[animal.speciesId].achievement]
     : [];
 }

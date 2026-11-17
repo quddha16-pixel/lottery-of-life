@@ -585,7 +585,21 @@ test("ant brood cannot travel, while workers contribute through meaningful garde
     (key) => JSON.parse(localStorage.getItem(key)!),
     SAVE_KEY,
   );
-  expect(saved.family[saved.currentId].colonyService).toBeGreaterThan(2);
+  expect(saved.family[saved.currentId].biology.stores.leafLoad).toBeGreaterThan(
+    0,
+  );
+  await gameNav(page, "Explore").click();
+  await page.getByRole("button", { name: /Brood chamber/ }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /Travel here/ })
+    .click();
+  const returned = await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)!),
+    SAVE_KEY,
+  );
+  expect(returned.family[returned.currentId].colonyService).toBeGreaterThan(2);
+  expect(returned.family[returned.currentId].biology.stores.leafLoad).toBe(0);
   await page.screenshot({
     path: `test-results/ant-worker-${test.info().project.name}.png`,
     animations: "disabled",
@@ -758,11 +772,12 @@ for (const sp of SPECIES)
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await fixture(page, s);
-    await page
-      .getByRole("button", {
-        name: new RegExp(`^${speciesFlow[sp.id].action}`),
-      })
-      .click();
+    const activity = page.getByRole("button", {
+      name: new RegExp(`^${speciesFlow[sp.id].action}`),
+    });
+    if (!(await activity.isVisible()))
+      await page.getByText("More choices", { exact: false }).click();
+    await activity.click();
     const saved = await page.evaluate(
       (key) => JSON.parse(localStorage.getItem(key)!),
       SAVE_KEY,

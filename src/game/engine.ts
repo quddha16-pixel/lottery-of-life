@@ -1,5 +1,5 @@
-import { ADVENTURES } from "../data/adventures";
-import { snapshot, recordOutcome, urgentNeed } from "./outcomes";
+import { nextMoment } from "./development";
+import { snapshot, recordOutcome, urgentNeed, familyLoss } from "./outcomes";
 import { SPECIES, STARTERS, speciesById } from "../data/species";
 import { generateBirthContext } from "./history";
 import {
@@ -864,6 +864,12 @@ export function routineAction(
   if (a.speciesId === "ant" && !stageOf(a).dependent) {
     if (
       world?.activePatch === "forage" &&
+      biology.stores.leafLoad > 5 &&
+      actions.includes("move")
+    )
+      return "move";
+    if (
+      world?.activePatch === "forage" &&
       biology.stores.substrate < 30 &&
       actions.includes("feed")
     )
@@ -1087,6 +1093,7 @@ export function advancePaced(state: GameState): {
           s.area.encounter.kind,
         )) ||
       !!urgentNeed(s) ||
+      familyLoss(s, beforeState) ||
       current(s)!.stats.health < 30 ||
       health - current(s)!.stats.health > 12 ||
       changed
@@ -1114,7 +1121,7 @@ export function advanceToOpportunity(state: GameState): {
   if (!current(state)?.alive)
     return { state: copy(state), phases: 0, interrupted: false };
   const a = current(state)!,
-    next = ADVENTURES[a.speciesId].moments.find(([day]) => day > a.ageDays);
+    next = nextMoment(state);
   if (!next) return advancePaced(state);
   if (
     state.area?.encounter?.status === "active" &&
@@ -1135,6 +1142,7 @@ export function advanceToOpportunity(state: GameState): {
     if (
       !current(s)!.alive ||
       (need && need !== previousNeed) ||
+      familyLoss(s, before) ||
       health - current(s)!.stats.health > 12 ||
       (encounter?.status === "active" && encounter.kind !== "companion")
     )
@@ -1233,8 +1241,15 @@ export function travel(state: GameState, destination: string): GameState {
       }
     }
     const text = `${route.escorted ? "With your caregiver, you reach" : "You reach"} ${node.label.toLowerCase()} after ${route.phases} phase${route.phases === 1 ? "" : "s"}. Travel used ${route.energy} energy plus ordinary metabolism. Food, cover and water now depend on this location.`;
-    s.area!.feedback = text;
-    log(s, text);
+    const unloaded =
+      beforeState.stores.leafLoad >
+        (current(s)!.biology!.stores.leafLoad ?? 0) &&
+      ["home", "shade"].includes(destination);
+    const result = unloaded
+      ? `You deliver leaf material to the colony. ${text}`
+      : text;
+    s.area!.feedback = result;
+    log(s, result);
   }
   return recordOutcome(
     s,
