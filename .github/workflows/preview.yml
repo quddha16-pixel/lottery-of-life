@@ -2,8 +2,13 @@ name: Development preview (not production)
 on:
   workflow_dispatch:
     inputs:
+      candidate_branch:
+        description: Approved develop, feature/ or fix/ branch to preview without merging
+        required: true
+        default: develop
+        type: string
       candidate_sha:
-        description: Full integration-branch commit SHA explicitly approved for an iPhone preview
+        description: Full candidate commit SHA explicitly approved for an iPhone preview
         required: true
         type: string
 permissions:
@@ -22,19 +27,23 @@ jobs:
         id: candidate
         env:
           PREVIEWS_ENABLED: ${{ vars.DEVELOPMENT_PREVIEWS_ENABLED }}
-          INTEGRATION_BRANCH: ${{ vars.INTEGRATION_BRANCH }}
+          INTEGRATION_BRANCH: ${{ vars.INTEGRATION_BRANCH || 'develop' }}
           WORKFLOW_REF: ${{ github.ref }}
           APPROVED_SHA: ${{ inputs.candidate_sha }}
+          CANDIDATE_BRANCH: ${{ inputs.candidate_branch }}
           GH_TOKEN: ${{ github.token }}
         run: |
           test "$PREVIEWS_ENABLED" = true || { echo 'Preview hosting and approval protections must be configured before enabling previews.'; exit 1; }
           test "$WORKFLOW_REF" = refs/heads/main || { echo 'Run the trusted preview workflow from main.'; exit 1; }
-          [[ "$INTEGRATION_BRANCH" =~ ^(develop|integration)$ ]] || { echo 'Set INTEGRATION_BRANCH to the approved non-conflicting branch name.'; exit 1; }
+          test "$INTEGRATION_BRANCH" = develop || { echo 'The approved integration branch is develop.'; exit 1; }
+          [[ "$CANDIDATE_BRANCH" = develop || "$CANDIDATE_BRANCH" =~ ^(feature|fix)/[a-zA-Z0-9][a-zA-Z0-9/_-]*$ ]] || { echo 'Only develop or an approved feature/fix branch can be previewed.'; exit 1; }
           [[ "$APPROVED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Provide a full candidate SHA.'; exit 1; }
-          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$INTEGRATION_BRANCH" --jq .object.sha)
-          test "$APPROVED_SHA" = "$current_sha" || { echo 'The candidate must match the selected integration tip; review the exact commit before dispatch.'; exit 1; }
+          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$CANDIDATE_BRANCH" --jq .object.sha)
+          test "$APPROVED_SHA" = "$current_sha" || { echo 'The candidate must match the selected branch tip; review the exact commit before dispatch.'; exit 1; }
+          comparison=$(gh api "repos/$GITHUB_REPOSITORY/compare/$INTEGRATION_BRANCH...$APPROVED_SHA" --jq .status)
+          [[ "$comparison" = ahead || "$comparison" = identical ]] || { echo 'The candidate must contain the current develop history.'; exit 1; }
           echo "sha=$APPROVED_SHA" >> "$GITHUB_OUTPUT"
-          echo "branch=$INTEGRATION_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "branch=$CANDIDATE_BRANCH" >> "$GITHUB_OUTPUT"
   build:
     needs: authorize
     runs-on: ubuntu-latest
@@ -106,13 +115,21 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Configure the preview-only Cloudflare credentials in the development-preview environment.'; exit 1; }
           [[ "$PREVIEW_PROJECT" =~ ^[a-z0-9][a-z0-9-]{0,57}[a-z0-9]$ ]] || { echo 'Set a valid separate preview project name.'; exit 1; }
-          npx --yes wrangler@4.164.0 pages deploy preview-site --project-name "$PREVIEW_PROJECT" --branch "$CANDIDATE_BRANCH" --commit-hash "$CANDIDATE_SHA"
-          preview_url="https://$CANDIDATE_BRANCH.$PREVIEW_PROJECT.pages.dev/lottery-of-life/"
-          echo "url=$preview_url" >> "$GITHUB_OUTPUT"
+          npx --yes wrangler@4.164.0 pages deploy preview-site --project-name "$PREVIEW_PROJECT" --branch review --commit-hash "$CANDIDATE_SHA" 2>&1 | tee wrangler-preview-output.txt
+          node --input-type=module <<'JS'
+          import {readFile,appendFile} from 'node:fs/promises';
+          const project=process.env.PREVIEW_PROJECT;
+          const text=await readFile('wrangler-preview-output.txt','utf8');
+          const matches=[...text.matchAll(new RegExp('https://([a-z0-9-]+)\\.'+project+'\\.pages\\.dev','g'))];
+          const url=matches.find(m=>m[1]!=='review')?.[0];
+          if(!url)throw new Error('No immutable preview deployment URL was returned.');
+          await appendFile(process.env.GITHUB_OUTPUT,`url=${url}/lottery-of-life/\n`);
+          await appendFile(process.env.GITHUB_STEP_SUMMARY,`\nExact iPhone preview: ${url}/lottery-of-life/\n`);
+          JS
           {
             echo '## Development preview — not a production release'
             echo "Candidate: $CANDIDATE_SHA"
-            echo "iPhone link: $preview_url"
+            echo "Source branch: $CANDIDATE_BRANCH"
             echo 'Passing this workflow does not establish Playable. Quentin must test this candidate on his iPhone.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Verify preview identity
