@@ -1,4 +1,12 @@
-import { SCENARIOS, SPECIES, STARTERS, speciesById } from "../data/species";
+import { SPECIES, STARTERS, speciesById } from "../data/species";
+import { generateBirthContext } from "./history";
+import {
+  createWorld,
+  tickWorld,
+  applyWorldAction,
+  ensureIndividualExperience,
+  refreshResources,
+} from "./world";
 import { nextDate } from "./calendar";
 import { pick, random, seedFromText } from "./random";
 import type {
@@ -70,6 +78,17 @@ export const ACTIONS: Record<
     detail: "Provision offspring and improve their survival prospects.",
     icon: "✧",
   },
+  move: {
+    title: "Change local patch",
+    detail:
+      "Leave depleted ground for another local patch. Movement costs energy and exposure.",
+    icon: "↗",
+  },
+  learn: {
+    title: "Observe your caregivers",
+    detail: "Limited, age-appropriate learning while routine care continues.",
+    icon: "◷",
+  },
   wait: {
     title: "Develop quietly",
     detail: "Remain in the nest or nursery for this phase.",
@@ -79,9 +98,15 @@ export const ACTIONS: Record<
 export const current = (s: GameState) =>
   s.currentId ? s.family[s.currentId] : undefined;
 export const stageOf = (a: Individual) =>
-  [...speciesById(a.speciesId).stages]
-    .reverse()
-    .find((s) => a.ageDays >= s.fromDay)!;
+  a.ageDays > speciesById(a.speciesId).lifespan * 1.2
+    ? {
+        name: "Older adult",
+        fromDay: Math.floor(speciesById(a.speciesId).lifespan * 1.2),
+        dependent: false,
+      }
+    : [...speciesById(a.speciesId).stages]
+        .reverse()
+        .find((s) => a.ageDays >= s.fromDay)!;
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
 const copy = (s: GameState): GameState => structuredClone(s);
 const id = (s: GameState) => `i${++s.serial}`;
@@ -105,7 +130,8 @@ function log(
 }
 export function createGame(seed = "lottery-of-life"): GameState {
   return {
-    version: 1,
+    version: 2,
+    pacing: "balanced",
     rng: seedFromText(seed),
     serial: 0,
     coins: 0,
@@ -135,6 +161,12 @@ function makeIndividual(
 ): Individual {
   const sp = speciesById(speciesId);
   const sex = sp.reproductive ? pick(s, ["Female", "Male"] as const) : "Female";
+  const tendency = (
+    key: "caution" | "curiosity" | "learning" | "stressResponse",
+  ) =>
+    parent?.personality
+      ? clamp(parent.personality[key] + (random(s) - 0.5) * 20)
+      : 25 + random(s) * 50;
   return {
     id: id(s),
     speciesId,
@@ -155,6 +187,13 @@ function makeIndividual(
     birth: { ...s.date },
     ageDays: 0,
     traits: traits(s, parent?.traits),
+    personality: {
+      caution: tendency("caution"),
+      curiosity: tendency("curiosity"),
+      learning: tendency("learning"),
+      stressResponse: tendency("stressResponse"),
+    },
+    experience: { foraging: 0, habitatKnowledge: 0, dangerMemory: 0 },
     stats: {
       health: 90 + random(s) * 10,
       hunger: 20,
@@ -175,56 +214,57 @@ function makeIndividual(
 }
 export function startLife(
   state: GameState,
-  options: { speciesId?: string; scenarioId: string; seed: string },
+  options: { speciesId?: string; year?: number; seed: string },
 ): GameState {
   if (current(state)?.alive)
     throw new Error(
       "Finish or abandon the active life before starting another.",
     );
   const s = copy(state);
-  const scenario = SCENARIOS.find((e) => e.id === options.scenarioId);
-  if (!scenario) throw new Error("Unknown historical scenario");
   s.rng = seedFromText(options.seed);
   const speciesId = options.speciesId ?? pick(s, s.unlocked);
   if (!s.unlocked.includes(speciesId))
     throw new Error("That species is locked");
   const sp = speciesById(speciesId);
-  if (scenario.year < sp.existence[0] || scenario.year > sp.existence[1])
-    throw new Error("Species is unavailable in this period");
-  // Births are set in a favorable season; southern Africa uses austral spring.
-  const location = structuredClone(pick(s, sp.locations));
-  s.date = {
-    year: scenario.year,
-    day:
-      location.region === "Southern Africa"
-        ? 274
-        : 151 + Math.floor(random(s) * 30),
-  };
+  const generated = generateBirthContext(s, sp, options.year);
+  s.date = generated.date;
   s.phase = 0;
-  s.environment = {
-    scenarioId: scenario.id,
-    location,
-    temperature: location.temperature + scenario.warming,
-    food: sp.food * scenario.food,
-    pressure: scenario.pressure,
-    weather: "Mild",
-  };
+  s.environment = generated.environment;
   const animal = makeIndividual(s, speciesId);
+  animal.circumstances = generated.circumstances;
+  animal.stats.bond = 40 + s.environment.careQuality! * 35;
+  {
+    animal.stats.health = 80 + random(s) * 18;
+    animal.stats.hunger = 12 + random(s) * 22;
+    animal.stats.energy = 70 + random(s) * 25;
+    animal.stats.stress = 8 + random(s) * 18 + s.environment.pressure * 10;
+  }
   s.family[animal.id] = animal;
   s.currentId = animal.id;
+  s.world = createWorld(s);
+  refreshResources(s);
   log(
     s,
-    `${animal.name} begins life as a ${sp.name.toLowerCase()} in ${location.place}. ${animal.caste ? "A female worker, part of a larger colony." : sp.social}`,
+    `${animal.name} begins life as a ${sp.name.toLowerCase()} in ${s.environment.location.place}. ${animal.caste ? "A female worker, part of a larger colony." : sp.social}`,
     "birth",
   );
-  log(s, `${scenario.title}. ${scenario.description}`, "birth");
+  log(
+    s,
+    `${s.environment.history!.epoch}. ${animal.circumstances} ${s.environment.history!.description}`,
+    "birth",
+  );
   return s;
 }
 export function availableActions(s: GameState): Action[] {
   const a = current(s);
   if (!a?.alive) return [];
   const sp = speciesById(a.speciesId);
-  if (stageOf(a).dependent) return ["feed", "rest", "shelter", "wait"];
+  if (stageOf(a).dependent) {
+    const actions: Action[] = ["feed", "rest", "shelter", "wait"];
+    if (!["Egg", "Pupa"].includes(stageOf(a).name) && a.ageDays > 5)
+      actions.push("learn");
+    return actions;
+  }
   const actions: Action[] = [
     "feed",
     ...(sp.water === "fresh" ? ["drink" as const] : []),
@@ -233,6 +273,8 @@ export function availableActions(s: GameState): Action[] {
     "explore",
     "evade",
   ];
+  if (s.world && a.stats.energy > 25 && a.stats.injury < 55)
+    actions.push("move");
   if (sp.behavior?.socialAction !== false) actions.push("socialize");
   const interval = sp.behavior?.breedingInterval ?? 365;
   if (
@@ -349,42 +391,8 @@ export function abandonLife(state: GameState): GameState {
   return s;
 }
 function updateWorld(s: GameState) {
-  const env = s.environment!;
-  const sp = speciesById(current(s)!.speciesId);
-  const scenario = SCENARIOS.find((x) => x.id === env.scenarioId)!;
-  const tropical = ["Africa", "Central America"].some(
-    (x) => env.location.continent === x || env.location.region === x,
-  );
-  const marine = sp.water === "marine";
-  const hemisphere = env.location.region === "Southern Africa" ? -1 : 1;
-  const seasonal =
-    Math.sin(((s.date.day - 80) / 365) * Math.PI * 2) * hemisphere;
-  const warming = Math.max(0, s.date.year - scenario.year) * 0.018;
-  env.temperature =
-    env.location.temperature +
-    seasonal * (marine ? 3 : tropical ? 4 : 10) +
-    scenario.warming +
-    warming +
-    (random(s) - 0.5) * 5;
-  env.food = Math.max(
-    0.35,
-    Math.min(
-      0.98,
-      sp.food * scenario.food + seasonal * 0.06 + (random(s) - 0.5) * 0.1,
-    ),
-  );
-  env.weather =
-    env.temperature > sp.heat - 3
-      ? "Hot"
-      : env.temperature < sp.cold + 3
-        ? "Cold"
-        : random(s) < 0.2
-          ? "Rain"
-          : "Mild";
-  env.pressure = Math.min(
-    0.8,
-    scenario.pressure + Math.max(0, s.date.year - scenario.year) * 0.002,
-  );
+  s.world ??= createWorld(s);
+  for (const message of tickWorld(s)) log(s, message, "milestone");
 }
 function offspringDaily(s: GameState) {
   const a = current(s)!;
@@ -397,7 +405,12 @@ function offspringDaily(s: GameState) {
     relative.ageDays++;
     const independent = relative.ageDays >= sp.independence;
     const care = a.alive && a.stats.bond >= 60 && a.stats.hunger < 70;
-    const risk = sp.risk * (independent ? 1 : care ? 2 : 5);
+    const risk =
+      sp.risk *
+      (independent ? 1 : care ? 2 : 5) *
+      (s.world
+        ? (0.5 + s.world.predators) * (1 + Math.max(0, 0.4 - s.world.water))
+        : 1);
     if (random(s) < risk || relative.ageDays >= sp.maxLifespan) {
       relative.alive = false;
       relative.death = { ...s.date };
@@ -434,12 +447,16 @@ function birthOffspring(s: GameState) {
   );
 }
 export function act(state: GameState, action: Action): GameState {
+  return resolvePhase(copy(state), action);
+}
+function resolvePhase(state: GameState, action: Action): GameState {
   if (!availableActions(state).includes(action))
     throw new Error("Action unavailable for this life stage or condition");
-  const s = copy(state),
+  const s = state,
     a = current(s)!,
     sp = speciesById(a.speciesId),
     env = s.environment!;
+  ensureIndividualExperience(a);
   const dependent = stageOf(a).dependent,
     stats = a.stats;
   const active =
@@ -449,30 +466,46 @@ export function act(state: GameState, action: Action): GameState {
         ? s.phase < 2
         : s.phase === 0 || s.phase === 2;
   stats.hunger += dependent ? 4 : 6;
-  stats.hydration -= sp.water === "fresh" ? 5 : 1;
-  stats.energy -= active ? 4 : 6;
-  stats.stress += 1;
+  stats.hydration -=
+    sp.water === "fresh" ? 4 + Math.max(0, env.temperature - 25) / 5 : 1;
+  stats.energy -= (active ? 4 : 6) * (a.ageDays > sp.lifespan ? 1.2 : 1);
+  stats.stress += 0.5 + (a.personality?.stressResponse ?? 50) / 100;
   let exposure = 0.2,
     text = "";
   switch (action) {
+    case "move":
+      stats.energy -= 12;
+      stats.stress += 3;
+      exposure = 1.2;
+      text = "You leave the depleted patch and settle on better local ground.";
+      break;
+    case "learn":
+      stats.energy -= 2;
+      stats.stress -= 3;
+      text =
+        "Sensory experience accumulates around your caregivers; independence still lies ahead.";
+      break;
     case "feed": {
       const success =
         random(s) <
         Math.min(
           0.98,
           env.food +
-            (dependent ? 0.05 : a.traits.perception / 800) +
+            (dependent
+              ? 0.05
+              : a.traits.perception / 800 +
+                (a.experience?.foraging ?? 0) / 1200) +
             (stats.bond - 50) / 500,
         );
       exposure = dependent ? 0.04 : 1;
       stats.energy -= dependent ? 0 : 7;
       if (success) {
         stats.hunger -= dependent ? 27 : 35;
-        stats.hydration += sp.water === "fresh" ? 2 : 18;
+        stats.hydration += dependent ? 26 : sp.water === "fresh" ? 2 : 18;
         text = dependent
           ? "The nursery provides nourishment and protection."
           : `${actionTitle(s, action)}: a successful feeding opportunity.`;
-        if (sp.behavior?.colonyForaging) a.colonyService++;
+        if (!dependent && sp.behavior?.colonyForaging) a.colonyService++;
       } else {
         stats.stress += 5;
         text = dependent
@@ -482,10 +515,13 @@ export function act(state: GameState, action: Action): GameState {
       break;
     }
     case "drink":
-      stats.hydration += 40;
+      stats.hydration += 40 * (s.world ? Math.max(0.1, s.world.water) : 1);
       stats.energy -= 3;
       exposure = 0.7;
-      text = "Fresh water restores hydration. The water’s edge is exposed.";
+      text =
+        s.world && s.world.water < 0.3
+          ? "Water is scarce; the exposed search yields little hydration."
+          : "Fresh water restores hydration. The water’s edge is exposed.";
       break;
     case "rest":
       stats.energy += active ? 28 : 38;
@@ -545,6 +581,14 @@ export function act(state: GameState, action: Action): GameState {
       text = "Food and protection are shared with dependent young.";
       break;
   }
+  if (dependent && ["wait", "rest", "learn"].includes(action)) {
+    const care = (env.careQuality ?? 0.85) * env.food;
+    if (random(s) < care) {
+      stats.hunger -= 10;
+      stats.hydration += 5;
+    }
+  }
+  applyWorldAction(s, action);
   if (stats.hunger > 75) stats.health -= (stats.hunger - 70) / 9;
   if (stats.hydration < 25) stats.health -= (30 - stats.hydration) / 6;
   if (stats.energy < 15) {
@@ -562,7 +606,11 @@ export function act(state: GameState, action: Action): GameState {
     stats.health += 0.5;
   const risk =
     (sp.risk *
-      exposure *
+      (s.world ? 0.5 + s.world.predators * 2 : 1) *
+      (1 - (a.personality?.caution ?? 50) / 400) *
+      (dependent
+        ? Math.max(exposure, 0.2 + Math.max(0, 0.7 - env.food) * 0.8)
+        : exposure) *
       (dependent ? 1.7 : 1) *
       (1 + env.pressure + stats.stress / 100 + stats.injury / 80)) /
     4;
@@ -574,6 +622,7 @@ export function act(state: GameState, action: Action): GameState {
       finish(s, `Predation / conflict: ${predator}`);
       return s;
     }
+    a.experience!.dangerMemory = Math.min(100, a.experience!.dangerMemory + 20);
     stats.injury += 30;
     stats.health -= 18;
     stats.stress += 30;
@@ -653,6 +702,30 @@ export function routineAction(
     sp = speciesById(a.speciesId),
     actions = availableActions(s),
     stats = a.stats;
+  const world = s.world;
+  if (stats.energy < 30) return "rest";
+  if (
+    world &&
+    world.predators > 0.6 &&
+    (a.personality?.caution ?? 50) > 65 &&
+    stats.hunger < 35 &&
+    stats.energy > 40
+  )
+    return "shelter";
+  if (
+    world &&
+    actions.includes("move") &&
+    stats.energy > 35 &&
+    world.patches.find((p) => p.id === world.activePatch)!.food < 0.45
+  )
+    return "move";
+  if (
+    (a.experience?.dangerMemory ?? 0) > 15 &&
+    stats.energy > 50 &&
+    stats.hunger < 35 &&
+    actions.includes("shelter")
+  )
+    return "shelter";
   if (stats.hydration < 40 && actions.includes("drink")) return "drink";
   if (stats.hunger > 35 || (sp.water !== "fresh" && stats.hydration < 55))
     return "feed";
@@ -691,13 +764,13 @@ export function advanceDays(
 ): { state: GameState; phases: number; interrupted: boolean } {
   if (!Number.isInteger(days) || days < 1 || days > 365)
     throw new Error("Skip must be 1–365 days");
-  let s = state;
+  let s = copy(state);
   let phases = 0;
   let interrupted = false;
   const limit = days * 4 - s.phase;
   while (phases < limit && current(s)?.alive) {
     const before = current(s)!.stats.health;
-    s = act(s, routineAction(s));
+    s = resolvePhase(s, routineAction(s));
     phases++;
     if (
       !current(s)!.alive ||
@@ -751,3 +824,48 @@ export function openPack(state: GameState): GameState {
 }
 export const unlockedSpecies = (s: GameState) =>
   SPECIES.filter((sp) => s.unlocked.includes(sp.id));
+
+export function advancePaced(state: GameState): {
+  state: GameState;
+  phases: number;
+  interrupted: boolean;
+} {
+  if (!current(state)?.alive)
+    return { state: copy(state), phases: 0, interrupted: false };
+  if (state.pacing === "immersive") {
+    const next = act(state, routineAction(state));
+    return { state: next, phases: 1, interrupted: !current(next)?.alive };
+  }
+  const dependent = current(state) ? stageOf(current(state)!).dependent : false;
+  const budget =
+    state.pacing === "balanced" ? (dependent ? 16 : 4) : dependent ? 120 : 28;
+  let s = copy(state),
+    phases = 0,
+    interrupted = false;
+  const initialStage = current(s) ? stageOf(current(s)!).name : "";
+  const initialSituations = s.world?.situations
+    .filter((x) => x.status === "active")
+    .map((x) => x.id)
+    .join(",");
+  while (phases < budget && current(s)?.alive) {
+    const health = current(s)!.stats.health;
+    s = resolvePhase(s, routineAction(s));
+    phases++;
+    const changed =
+      stageOf(current(s)!).name !== initialStage ||
+      s.world?.situations
+        .filter((x) => x.status === "active")
+        .map((x) => x.id)
+        .join(",") !== initialSituations;
+    if (
+      !current(s)!.alive ||
+      current(s)!.stats.health < 30 ||
+      health - current(s)!.stats.health > 12 ||
+      changed
+    ) {
+      interrupted = true;
+      break;
+    }
+  }
+  return { state: s, phases, interrupted };
+}

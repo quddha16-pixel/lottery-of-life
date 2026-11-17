@@ -7,6 +7,11 @@ export function nextDate(date: WorldDate): WorldDate {
     ? { year: date.year + 1, day: 0 }
     : { ...date, day: date.day + 1 };
 }
+export function formatYear(year: number): string {
+  return year > 0
+    ? `${year.toLocaleString("en-US")} CE`
+    : `${(1 - year).toLocaleString("en-US")} BCE`;
+}
 export function formatDate(date: WorldDate): string {
   const months = [
     31,
@@ -39,7 +44,7 @@ export function formatDate(date: WorldDate): string {
   let day = date.day;
   let month = 0;
   while (day >= months[month] && month < 11) day -= months[month++];
-  const year = date.year > 0 ? `${date.year}` : `${1 - date.year} BCE`;
+  const year = formatYear(date.year);
   return `${day + 1} ${names[month]} ${year}`;
 }
 export function ageLabel(days: number): string {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPECIES, SCENARIOS, STARTERS, speciesById } from "../data/species";
+import { SPECIES, STARTERS, speciesById } from "../data/species";
 import {
   act,
   availableActions,
@@ -27,7 +27,7 @@ import {
 } from "./storage";
 import type { GameState } from "./types";
 function birth(speciesId = "wolf", seed = "test-101") {
-  return startLife(createGame(), { speciesId, scenarioId: "2020", seed });
+  return startLife(createGame(), { speciesId, year: 2020, seed });
 }
 function mature(speciesId: string) {
   const s = birth(speciesId);
@@ -49,20 +49,27 @@ describe("valid seeded birth generation", () => {
     expect(s.coins).toBe(0);
   });
   for (const sp of SPECIES.filter((s) => s.starter))
-    for (const scenario of SCENARIOS) {
-      it(`${sp.name} has valid geography and date in ${scenario.year}`, () => {
+    for (const year of [sp.existence[0], 0, sp.existence[1]]) {
+      it(`${sp.name} has valid geography and date in ${year}`, () => {
         const s = startLife(createGame(), {
           speciesId: sp.id,
-          scenarioId: scenario.id,
+          year,
           seed: "stable",
         });
         const a = current(s)!;
-        expect(sp.locations).toContainEqual(s.environment!.location);
-        expect(a.birth.year).toBe(scenario.year);
+        expect(
+          sp.history.habitats.some(
+            (h) =>
+              h.id === s.environment!.location.id &&
+              h.from <= year &&
+              h.to >= year,
+          ),
+        ).toBe(true);
+        expect(a.birth.year).toBe(year);
         expect(a.birth.year).toBeGreaterThanOrEqual(sp.existence[0]);
         expect(a.birth.year).toBeLessThanOrEqual(sp.existence[1]);
         expect(a.ageDays).toBe(0);
-        expect(a.stats.health).toBeGreaterThanOrEqual(90);
+        expect(a.stats.health).toBeGreaterThanOrEqual(80);
       });
     }
   it("replays the exact same seed and actions", () => {
@@ -77,9 +84,9 @@ describe("valid seeded birth generation", () => {
   it("rejects locked species, unknown periods, and overwriting a living individual", () => {
     expect(() => birth("fox")).toThrow("locked");
     expect(() =>
-      startLife(createGame(), { scenarioId: "jurassic", seed: "x" }),
+      startLife(createGame(), { year: -1000000, seed: "x" }),
     ).toThrow();
-    expect(() => startLife(birth(), { scenarioId: "2020", seed: "x" })).toThrow(
+    expect(() => startLife(birth(), { year: 2020, seed: "x" })).toThrow(
       "active life",
     );
   });
@@ -88,9 +95,8 @@ describe("valid seeded birth generation", () => {
       Array.from(
         { length: 300 },
         (_, i) =>
-          current(
-            startLife(createGame(), { scenarioId: "1900", seed: `seed-${i}` }),
-          )!.speciesId,
+          current(startLife(createGame(), { year: 1900, seed: `seed-${i}` }))!
+            .speciesId,
       ),
     );
     expect([...ids].sort()).toEqual([...STARTERS].sort());
@@ -125,7 +131,10 @@ describe("phase and survival rules", () => {
     expect(next.journal.some((e) => e.kind === "milestone")).toBe(true);
   });
   it("feeding and resting have different persistent consequences; inputs are immutable", () => {
-    const s = birth("rabbit");
+    const s = mature("rabbit");
+    s.environment!.food = 1;
+    current(s)!.stats.hunger = 60;
+    current(s)!.stats.energy = 60;
     const old = serialize(s);
     const fed = act(s, "feed"),
       rested = act(s, "rest");
@@ -237,16 +246,14 @@ describe("success and collection economy", () => {
     const s = createGame();
     s.unlocked.push("fox");
     expect(
-      current(
-        startLife(s, { speciesId: "fox", scenarioId: "1980", seed: "a" }),
-      )!.speciesId,
+      current(startLife(s, { speciesId: "fox", year: 1980, seed: "a" }))!
+        .speciesId,
     ).toBe("fox");
     expect(
       Array.from(
         { length: 100 },
         (_, i) =>
-          current(startLife(s, { scenarioId: "2020", seed: `${i}` }))!
-            .speciesId,
+          current(startLife(s, { year: 2020, seed: `${i}` }))!.speciesId,
       ),
     ).toContain("fox");
   });

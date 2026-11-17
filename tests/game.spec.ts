@@ -53,23 +53,36 @@ async function begin(
     path: `test-results/overview-${test.info().project.name}.png`,
     fullPage: true,
   });
-  await page
-    .getByRole("button", { name: "Begin a new life", exact: true })
-    .click();
+  await page.getByRole("button", { name: "New Life", exact: true }).click();
   await page
     .getByRole("button", { name: "Choose species", exact: true })
     .click();
   await page.getByLabel("Unlocked species").selectOption({ label: species });
   await page
-    .getByRole("textbox", { name: "03 / WORLD SEED" })
-    .fill("browser-check");
-  await page.getByRole("button", { name: "Draw a life", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Your story begins here." }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Enter this life", exact: true })
+    .getByText("World seed & historical scope", { exact: true })
     .click();
+  await page.getByRole("textbox", { name: "World seed" }).fill("browser-check");
+  await page
+    .getByRole("button", { name: "Reveal species", exact: true })
+    .click();
+  await expect(
+    page.getByRole("main", { name: "Birth sequence" }),
+  ).toBeVisible();
+  await expect(page.getByText("BIRTHPLACE", { exact: true })).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Reveal birthplace", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Reveal birth date", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Reveal circumstances", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Begin Life", exact: true }).click();
+  await expect(page.getByRole("main", { name: "Active life" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Lottery of Life", exact: true }),
+  ).toHaveCount(0);
 }
 test("draws a valid life, resolves phases, and preserves the individual on reload", async ({
   page,
@@ -77,6 +90,9 @@ test("draws a valid life, resolves phases, and preserves the individual on reloa
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await begin(page);
+  await page.screenshot({
+    path: `test-results/active-first-screen-${test.info().project.name}.png`,
+  });
   await expect(page.getByText("Pup", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Hunt with the pack/ }),
@@ -91,14 +107,15 @@ test("draws a valid life, resolves phases, and preserves the individual on reloa
   );
   expect(saved.phase).toBe(1);
   await page.reload();
-  await page
-    .getByRole("button", { name: "Continue your life", exact: true })
-    .click();
+  await expect(page.getByRole("main", { name: "Active life" })).toBeVisible();
   await expect(
     page.getByLabel("Day phases").locator('[aria-current="step"]'),
   ).toContainText("Afternoon");
+  await page.getByText("Time Skip & autonomy", { exact: true }).click();
   await page.getByRole("button", { name: "Next day", exact: false }).click();
-  await expect(page.getByRole("status")).toContainText("3 phases resolved");
+  await expect(
+    page.getByRole("status").filter({ hasText: "phases resolved" }),
+  ).toContainText("3 phases resolved");
   await expect(page.getByText("1 day", { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -186,7 +203,7 @@ test("permanent death exposes a lifetime record and blocks continuing the dead a
 }) => {
   let s = startLife(createGame(), {
     speciesId: "rabbit",
-    scenarioId: "1900",
+    year: 1900,
     seed: "dying",
   });
   current(s)!.ageDays = 200;
@@ -200,7 +217,7 @@ test("permanent death exposes a lifetime record and blocks continuing the dead a
   await page.goto("./");
   await page
     .getByRole("button", {
-      name: "Read your latest lifetime record",
+      name: "Lifetime Records",
       exact: false,
     })
     .click();
@@ -267,7 +284,7 @@ test("validated imports restore save state and exports produce a JSON file", asy
   const s = abandonLife(
     startLife(createGame(), {
       speciesId: "bumblebee",
-      scenarioId: "1980",
+      year: 1980,
       seed: "imported",
     }),
   );
@@ -291,7 +308,7 @@ test("a surviving offspring takes over at its real age without resetting the wor
 }) => {
   let s = startLife(createGame(), {
     speciesId: "rabbit",
-    scenarioId: "1980",
+    year: 1980,
     seed: "test-101",
   });
   const parent = current(s)!;
@@ -331,4 +348,86 @@ test("a surviving offspring takes over at its real age without resetting the wor
   expect(saved.date).toEqual(beforeDate);
   expect(saved.family[saved.currentId].generation).toBe(2);
   expect(saved.family[s.currentId!].alive).toBe(false);
+});
+
+test("immersive gameplay starts at the animal and actions, and returning to the menu preserves the life", async ({
+  page,
+}) => {
+  await begin(page);
+  await expect(page.locator(".sidebar")).toHaveCount(0);
+  await expect(page.locator(".hero")).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "Animal identity" }),
+  ).toBeVisible();
+  const firstAction = await page.locator(".game-action").first().boundingBox();
+  expect(firstAction!.y).toBeLessThan(page.viewportSize()!.height);
+  expect(firstAction!.y + firstAction!.height).toBeLessThan(
+    page.viewportSize()!.height,
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  const saved = await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)!),
+    SAVE_KEY,
+  );
+  await page
+    .getByRole("button", { name: "Save & Main Menu", exact: false })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Lottery of Life", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Created by Quentin Warminsky", { exact: true }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("main", { name: "Active life" })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Save & Main Menu", exact: false })
+    .click();
+  await page.getByRole("button", { name: "New Life", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "A life is already unfolding." }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Continue Life", exact: true })
+    .click();
+  const resumed = await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)!),
+    SAVE_KEY,
+  );
+  expect(resumed).toEqual(saved);
+});
+
+test("routine pacing, living-world drawers and touch navigation remain functional", async ({
+  page,
+}) => {
+  await begin(page);
+  await page.getByLabel("Your pace").selectOption("story");
+  await page
+    .getByRole("button", { name: "Advance routine care", exact: false })
+    .click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "phases resolved" }),
+  ).toBeVisible();
+  await page.getByText("Local world", { exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Continuing situations" }),
+  ).toBeVisible();
+  const save = await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)!),
+    SAVE_KEY,
+  );
+  expect(save.world.elapsedDays).toBeGreaterThan(0);
+  expect(save.pacing).toBe("story");
+  await page.getByText("Life Journal", { exact: true }).click();
+  await page
+    .getByRole("button", { name: "Open full journal", exact: false })
+    .click();
+  await page
+    .getByRole("button", { name: "Return to Life", exact: true })
+    .click();
+  await expect(page.getByRole("main", { name: "Active life" })).toBeVisible();
 });

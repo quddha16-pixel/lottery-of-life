@@ -1,3 +1,4 @@
+import { HISTORIES } from "./history";
 import type { Species, Location, Stage } from "../game/types";
 const loc = (
   continent: string,
@@ -14,14 +15,15 @@ const stage = (name: string, fromDay: number, dependent = false): Stage => ({
 const common = {
   starter: true,
   image: "",
-  existence: [-10000, 2200] as [number, number],
   source: "https://animaldiversity.org/",
-  note: "Wild lifespans and development vary. Stage thresholds, phase costs, risks and success scores are gameplay approximations; existence bounds here are conservative scenario limits, not speciation dates.",
+  note: "Wild lifespans and development vary. Stage thresholds, phase costs, risks and success scores are gameplay approximations; historical windows are conservative supported intervals, not precise speciation dates.",
 };
 export const SPECIES: Species[] = [
   {
     ...common,
     id: "bumblebee",
+    existence: HISTORIES.bumblebee.existence,
+    history: HISTORIES.bumblebee,
     behavior: { feedTitle: "Forage nectar & pollen", colonyForaging: true },
     name: "Bumblebee",
     scientific: "Bombus terrestris",
@@ -69,6 +71,8 @@ export const SPECIES: Species[] = [
   {
     ...common,
     id: "ant",
+    existence: HISTORIES.ant.existence,
+    history: HISTORIES.ant,
     behavior: { feedTitle: "Tend the fungus garden", colonyForaging: true },
     name: "Leafcutter ant",
     scientific: "Atta cephalotes",
@@ -117,6 +121,8 @@ export const SPECIES: Species[] = [
   {
     ...common,
     id: "rabbit",
+    existence: HISTORIES.rabbit.existence,
+    history: HISTORIES.rabbit,
     behavior: { feedTitle: "Graze & browse", breedingInterval: 45 },
     name: "European rabbit",
     scientific: "Oryctolagus cuniculus",
@@ -157,6 +163,8 @@ export const SPECIES: Species[] = [
   {
     ...common,
     id: "wolf",
+    existence: HISTORIES.wolf.existence,
+    history: HISTORIES.wolf,
     behavior: {
       feedTitle: "Hunt with the pack",
       earlyFeedTitle: "Practice foraging",
@@ -209,6 +217,8 @@ export const SPECIES: Species[] = [
   {
     ...common,
     id: "elephant",
+    existence: HISTORIES.elephant.existence,
+    history: HISTORIES.elephant,
     behavior: { feedTitle: "Graze & browse" },
     name: "African savanna elephant",
     scientific: "Loxodonta africana",
@@ -256,6 +266,8 @@ export const SPECIES: Species[] = [
   {
     ...common,
     id: "mallard",
+    existence: HISTORIES.mallard.existence,
+    history: HISTORIES.mallard,
     name: "Mallard duck",
     scientific: "Anas platyrhynchos",
     group: "Bird · Wetland forager",
@@ -296,6 +308,8 @@ export const SPECIES: Species[] = [
   {
     ...common,
     id: "octopus",
+    existence: HISTORIES.octopus.existence,
+    history: HISTORIES.octopus,
     behavior: {
       feedTitle: "Hunt along the seabed",
       earlyFeedTitle: "Hunt plankton",
@@ -347,6 +361,8 @@ export const SPECIES: Species[] = [
   {
     ...common,
     id: "meerkat",
+    existence: HISTORIES.meerkat.existence,
+    history: HISTORIES.meerkat,
     behavior: { minBreedingBond: 75 },
     name: "Meerkat",
     scientific: "Suricata suricatta",
@@ -389,6 +405,8 @@ export const SPECIES: Species[] = [
   {
     ...common,
     id: "bullfrog",
+    existence: HISTORIES.bullfrog.existence,
+    history: HISTORIES.bullfrog,
     behavior: {
       feedTitle: "Ambush small prey",
       earlyFeedTitle: "Graze algae & detritus",
@@ -445,6 +463,8 @@ export const SPECIES: Species[] = [
   {
     ...common,
     id: "raccoon",
+    existence: HISTORIES.raccoon.existence,
+    history: HISTORIES.raccoon,
     name: "Raccoon",
     scientific: "Procyon lotor",
     group: "Mammal · Nocturnal generalist",
@@ -485,6 +505,8 @@ export const SPECIES: Species[] = [
     ...common,
     starter: false,
     id: "fox",
+    existence: HISTORIES.fox.existence,
+    history: HISTORIES.fox,
     name: "Red fox",
     scientific: "Vulpes vulpes",
     group: "Mammal · Adaptable hunter",
@@ -525,6 +547,8 @@ export const SPECIES: Species[] = [
     ...common,
     starter: false,
     id: "robin",
+    existence: HISTORIES.robin.existence,
+    history: HISTORIES.robin,
     behavior: { socialAction: false },
     name: "European robin",
     scientific: "Erithacus rubecula",
@@ -570,6 +594,8 @@ export const SPECIES: Species[] = [
     ...common,
     starter: false,
     id: "seal",
+    existence: HISTORIES.seal.existence,
+    history: HISTORIES.seal,
     name: "Harbor seal",
     scientific: "Phoca vitulina",
     group: "Mammal · Coastal diver",
@@ -617,33 +643,3 @@ export const speciesById = (id: string): Species => {
   return species;
 };
 export const STARTERS = SPECIES.filter((s) => s.starter).map((s) => s.id);
-export const SCENARIOS = [
-  {
-    id: "1900",
-    year: 1900,
-    title: "The turn of a century",
-    description:
-      "Less fragmented habitats; local hunting and land use remain pressures.",
-    pressure: 0.12,
-    food: 1,
-    warming: 0,
-  },
-  {
-    id: "1980",
-    year: 1980,
-    title: "A changing landscape",
-    description: "Expanding roads and agriculture alter shelter and foraging.",
-    pressure: 0.3,
-    food: 0.96,
-    warming: 0.4,
-  },
-  {
-    id: "2020",
-    year: 2020,
-    title: "The world we share",
-    description: "Warmer conditions and greater habitat fragmentation.",
-    pressure: 0.48,
-    food: 0.91,
-    warming: 1.1,
-  },
-];

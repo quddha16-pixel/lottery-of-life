@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { SPECIES, SCENARIOS, STARTERS } from "../data/species";
+import { SPECIES, STARTERS } from "../data/species";
+import { contextAt } from "./history";
+import { createWorld, ensureIndividualExperience } from "./world";
 import { daysInYear } from "./calendar";
 import type { GameState } from "./types";
 const finite = z.number().finite();
@@ -37,6 +39,18 @@ const individual = z
     ageDays: whole,
     traits,
     stats,
+    circumstances: z.string().optional(),
+    personality: z
+      .object({
+        caution: meter,
+        curiosity: meter,
+        learning: meter,
+        stressResponse: meter,
+      })
+      .optional(),
+    experience: z
+      .object({ foraging: meter, habitatKnowledge: meter, dangerMemory: meter })
+      .optional(),
     parentId: z.string().optional(),
     generation: whole.min(1),
     alive: z.boolean(),
@@ -53,7 +67,64 @@ const individual = z
   .refine((a) => (a.alive ? !a.death && !a.cause : !!a.death && !!a.cause));
 const schema = z
   .object({
-    version: z.literal(1),
+    version: z.union([z.literal(1), z.literal(2)]),
+    pacing: z.enum(["immersive", "balanced", "story"]).default("immersive"),
+    world: z
+      .object({
+        model: z.literal(1),
+        rng: whole.max(4294967295).default(0),
+        elapsedDays: whole,
+        precipitation: finite.min(0).max(100),
+        daylight: finite.min(0).max(24),
+        season: z.string(),
+        moisture: finite.min(0).max(1),
+        water: finite.min(0).max(1),
+        vegetation: finite.min(0).max(1),
+        prey: finite.min(0).max(1),
+        predators: finite.min(0).max(1),
+        competition: finite.min(0).max(1),
+        habitat: finite.min(0).max(1),
+        activePatch: z.string(),
+        patches: z
+          .array(
+            z.object({
+              id: z.string(),
+              label: z.string(),
+              food: finite.min(0).max(1),
+              water: finite.min(0).max(1),
+              cover: finite.min(0).max(1),
+            }),
+          )
+          .min(1)
+          .max(20),
+        situations: z
+          .array(
+            z.object({
+              id: z.string(),
+              kind: z.enum([
+                "drought",
+                "food-shortage",
+                "predator-pressure",
+                "flood",
+                "breeding",
+              ]),
+              began: date,
+              days: whole,
+              severity: finite.min(0).max(1),
+              cause: z.string(),
+              status: z.enum(["active", "resolved"]),
+              involvement: whole,
+              outcome: z.string().optional(),
+            }),
+          )
+          .max(30),
+      })
+      .refine(
+        (w) =>
+          w.patches.some((p) => p.id === w.activePatch) &&
+          new Set(w.patches.map((p) => p.id)).size === w.patches.length,
+      )
+      .optional(),
     rng: whole.max(4294967295),
     serial: whole,
     coins: whole.max(1000000000),
@@ -65,18 +136,38 @@ const schema = z
       .object({
         scenarioId: z
           .string()
-          .refine((id) => SCENARIOS.some((s) => s.id === id)),
+          .refine(
+            (id) =>
+              id === "continuous" || ["1900", "1980", "2020"].includes(id),
+          ),
         location: z.object({
           continent: z.string(),
           region: z.string(),
           place: z.string(),
           habitat: z.string(),
           temperature: finite,
+          id: z.string().optional(),
+          hemisphere: z.enum(["north", "south", "equatorial"]).optional(),
+          climate: z
+            .enum(["temperate", "tropical", "arid", "marine"])
+            .optional(),
+          precision: z.enum(["regional", "local"]).optional(),
         }),
         temperature: finite,
         food: finite.min(0).max(1),
         pressure: finite.min(0).max(1),
         weather: z.string(),
+        careQuality: finite.min(0).max(1).optional(),
+        history: z
+          .object({
+            epoch: z.string(),
+            description: z.string(),
+            climateOffset: finite,
+            richness: finite.min(0).max(2),
+            pressure: finite.min(0).max(1),
+            approximation: z.string(),
+          })
+          .optional(),
       })
       .optional(),
     currentId: z.string().optional(),
@@ -161,9 +252,28 @@ export function deserialize(text: string): GameState {
   const result = schema.safeParse(JSON.parse(text));
   if (!result.success)
     throw new Error(
-      "Save is damaged or from an unsupported version. Version 1 saves are required.",
+      "Save is damaged or from an unsupported version. Version 1 or 2 saves are required.",
     );
-  return result.data;
+  const migrated: GameState = { ...result.data, version: 2 };
+  for (const a of Object.values(migrated.family)) ensureIndividualExperience(a);
+  if (migrated.currentId && migrated.environment) {
+    const location = migrated.environment.location;
+    const species = SPECIES.find(
+      (sp) => sp.id === migrated.family[migrated.currentId!].speciesId,
+    )!;
+    const template =
+      species.history.habitats.find(
+        (h) => h.continent === location.continent,
+      ) ?? species.history.habitats[0];
+    location.climate ??= template.climate;
+    location.hemisphere ??=
+      location.region === "Southern Africa" ? "south" : template.hemisphere;
+    migrated.environment.history ??= contextAt(migrated.date.year);
+    migrated.environment.careQuality ??= 0.85;
+    migrated.environment.scenarioId = "continuous";
+    migrated.world ??= createWorld(migrated);
+  }
+  return migrated;
 }
 export interface StorageLike {
   getItem(key: string): string | null;

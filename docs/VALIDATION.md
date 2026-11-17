@@ -1,4 +1,6 @@
-# Phase 1 validation
+# Phase 1 validation archive
+
+For the current review branch, see [overhaul validation](OVERHAUL_VALIDATION.md). The results below describe the original Phase 1 foundation.
 
 Validated in the selected Cloud workspace, using Node.js 24 and system Chromium. Only `quddha16-pixel/lottery-of-life` was changed.
 

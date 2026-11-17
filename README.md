@@ -1,8 +1,10 @@
-# Lottery of Life — Phase 1
+# Lottery of Life
 
-A browser-based, day-by-day animal life simulator in `quddha16-pixel/lottery-of-life`. **Lottery of Life** is the official project name. This project is entirely separate from Identifier Q and Soccer Pocket GM.
+A day-by-day animal survival game in `quddha16-pixel/lottery-of-life`, separate from Identifier Q and Soccer Pocket GM.
 
-## Run locally
+This branch, **`development/living-world-overhaul`**, contains the birth/gameplay redesign and a first coherent local-world implementation of Phase 2. It is for review: **do not merge or deploy without explicit approval**. The existing Pages workflow triggers automatically only from `development/phase-1-foundation`; pushing this branch runs CI without publishing it.
+
+## Run
 
 Node.js 24 LTS recommended (22.12+), npm.
 
@@ -11,32 +13,31 @@ npm ci
 npm run dev -- --host 0.0.0.0
 ```
 
-No API keys, backend, paid infrastructure, accounts, or AI services. Species photos and fonts are bundled locally. Browser storage holds progress; export JSON backups in Settings.
+Open the printed URL with `/lottery-of-life/`. No account, keys, backend, paid services or external AI. Fonts/photos are bundled locally. Save data lives in the browser; export backups in Settings.
 
-## Playable now
+## Play
 
-- Ten unlocked starting species, with three unlockable additional species.
-- Random or manual seeded births in curated range-valid 1900, 1980 and 2020 scenarios.
-- Four phases per day, developmental action gating, condition costs, feeding, rest, shelter, exploration and species-appropriate social/reproductive actions.
-- Autonomous priorities; next day, seven/thirty days and stage/lifespan-appropriate yearly skips through the same engine.
-- Persistent injury and resource consequences, mortality, irreversible individual death, journals, lifetime summaries and earned Coins.
-- One real weighted pack, duplicate conversion, persistent collection unlocks.
-- Sampled offspring, modest trait inheritance, family history, background family aging/mortality and takeover of a surviving direct offspring at its actual age.
-- Nine connected screens with a mobile layout, export/import, confirmation before destructive save changes, and backup recovery.
+- A dedicated main menu with New Life, Continue Life, collection, packs, bloodlines, lifetime records and creator credit.
+- A four-stage reveal of species, geography, date and circumstances; choose Begin Life to commit the generated individual.
+- Seeded continuous birth-year sampling across each species' supported historical window, including BCE and Late Pleistocene periods. Compatible historical habitats replace modern-location assumptions. [Scope and uncertainty](docs/HISTORICAL_MODEL.md).
+- An immersive gameplay screen with animal identity, date, phase, survival indicators, contextual situation and action consequences, plus expandable journal, relationships, family and time controls.
+- A persistent local ecosystem: weather, moisture, water, vegetation, prey, predator activity, competition, depletion and regrowth. Outcomes respond to these conditions rather than unrelated event cards.
+- Immersive, Balanced and Story Focus pacing through the same rules. Routine nursery care, milestones, mortality, local movement, continuing situations, individual tendencies and experience.
+- All original ten starting species, three pack unlocks, earned Coins, duplicates, offspring, inherited traits, permanent death and surviving-offspring continuation.
+- Autosave, backup recovery, export/import and deterministic version-1-to-2 migration. The old browser storage key is retained so existing progress is discovered.
 
-These systems are **gameplay approximations**, not a validated biological simulation. See [model scope, sources and limitations](docs/MODEL_NOTES.md) before interpreting the numbers.
+The full Phase 2 biological, social and ecological simulation is **not complete or scientifically calibrated**. [Implemented slices, limitations and next stages](docs/LIVING_WORLD.md).
 
 ## Architecture
 
-- `src/data/species.ts` — species records and historical scenario baselines; add data rather than branches in UI components.
-- `src/game/types.ts` — explicit simulation/save contracts.
-- `src/game/random.ts`, `calendar.ts` — persisted deterministic PRNG and integer-year calendar.
-- `src/game/engine.ts` — pure state-in/state-out births, phases, skips, mortality, rewards, packs, families. No React/browser dependency.
-- `src/game/storage.ts` — versioned validation, save serialization, prior-save recovery.
-- `src/App.tsx` — UI screen orchestration and browser adapter; `BRAND` contains replaceable product naming.
-- `src/index.css`, `App.css` — dark field-notebook design system, responsive layouts, focus styling and reduced-motion support.
-- `public/species/`, `src/data/image-credits.json` — local licensed photographs and attribution.
-- `src/game/engine.test.ts`, `tests/game.spec.ts` — engine and browser integration checks.
+- `src/data/species.ts` — biology, development and species behavior.
+- `src/data/history.ts` — species-specific supported intervals, regional habitat validity and family circumstances.
+- `src/game/history.ts`, `calendar.ts`, `random.ts` — validated historical generation, integer-year BCE/CE/deep-time dates and saved PRNG.
+- `src/game/world.ts` — persistent local ecological feedback, resources, movement, situations and contextual narration.
+- `src/game/engine.ts` — phase resolution, mortality, pacing/skips, reproduction, rewards, packs and continuation. No React dependency.
+- `src/game/storage.ts` — versioned schema validation, deterministic migration and recovery.
+- `src/components/BirthSequence.tsx`, `GameplayScreen.tsx` — dedicated immersive views; `UI.tsx` shares presentation primitives.
+- `src/App.tsx` — screen/history navigation, persistence adapter and existing notebook/collection/save screens.
 
 ## Validate
 
@@ -44,26 +45,12 @@ These systems are **gameplay approximations**, not a validated biological simula
 npm test
 npm run lint
 npm run build
-npx playwright install chromium    # once, if no system Chromium is available
+npx playwright install chromium    # once if a system Chromium is unavailable
 npm run test:e2e
 ```
 
-Playwright tests use desktop and mobile Chromium and fulfill static requests from the actual `dist/` bundle at a GitHub Pages-style subpath. They require no preview relay, app server, outside network or service. Set `PLAYWRIGHT_CHROMIUM_PATH` to override a system browser; otherwise `/usr/bin/chromium` is used when available, then Playwright's installed Chromium. The build runs TypeScript checks. Standard Vite preview is also available with `npm run preview`.
+Playwright executes the production bundle at a Pages-style subpath, with external requests blocked. Desktop and iPhone-sized Chromium runs cover the game, navigation, save recovery, progression and layout. The suite uses `/usr/bin/chromium` when available or Playwright's installed Chromium; `PLAYWRIGHT_CHROMIUM_PATH` overrides it. A mobile-emulated run is not physical Safari certification.
 
-Recorded local results and environment limits: [validation report](docs/VALIDATION.md).
+Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and browser Back without server rewrites. The deployment workflow's existing source-branch restriction is unchanged. Nothing on this review branch should be published until approved.
 
-## GitHub Pages preparation
-
-Vite explicitly uses `base: '/lottery-of-life/'`. Species photos use `import.meta.env.BASE_URL`; bundled scripts, styles and fonts are emitted under the same repository path. State-based navigation needs no SPA rewrite rules. Existing Phase 1 browser storage keys are retained so changing the title does not erase saves.
-
-`.github/workflows/pages.yml` runs on pushes to `development/phase-1-foundation`, with manual dispatch also configured. It lints, runs the engine and desktop/mobile browser tests, then uploads the exact tested `dist/` artifact. Only the deployment job receives `pages: write` and `id-token: write`. The `github-pages` environment records the deployed URL. `.github/workflows/ci.yml` provides independent CI checks.
-
-The repository's Pages setting must use **GitHub Actions** as its source, and its Pages environment must allow this development branch. Push triggering avoids relying on a manually dispatched workflow being present on the default branch (`main` still has the initial README).
-
-Pages availability for a private repository depends on the account's GitHub plan. Do not enable paid services or change the repository's visibility without authorization. Deployment status and any access blockers are recorded separately from the local test results.
-
-## Scope and next steps
-
-[Implementation sequence](docs/IMPLEMENTATION_PLAN.md) · [Biological assumptions and deferred systems](docs/MODEL_NOTES.md) · [Image and font licensing](docs/ASSET_CREDITS.md)
-
-Milestone A is implemented as a playable foundation, with early functional slices of B/C/D. Next: deepen species-specific survival and ecological consequences (Milestone B), validate the content more rigorously, and balance longer seeded runs. This is not yet the complete historical, ecological or multigenerational simulation envisioned in the full brief.
+[Validation results](docs/OVERHAUL_VALIDATION.md) · [Historical model](docs/HISTORICAL_MODEL.md) · [Living-world model and continuation](docs/LIVING_WORLD.md) · [Model notes](docs/MODEL_NOTES.md) · [Assets](docs/ASSET_CREDITS.md)

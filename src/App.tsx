@@ -1,22 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import { SCENARIOS, SPECIES, speciesById } from "./data/species";
+import { Icon, Photo, Tag, SectionTitle } from "./components/UI";
+import { BirthSequence } from "./components/BirthSequence";
+import { GameplayScreen } from "./components/GameplayScreen";
+import { SPECIES, speciesById } from "./data/species";
 import {
-  ACTIONS,
   PACK,
-  PHASES,
   abandonLife,
   act,
-  actionTitle,
   advanceDays,
-  availableActions,
+  advancePaced,
   continueBloodline,
   createGame,
   current,
   openPack,
-  skipOptions,
   stageOf,
-  startLife,
 } from "./game/engine";
 import { ageLabel, formatDate } from "./game/calendar";
 import {
@@ -27,13 +24,7 @@ import {
   persistGame,
   serialize,
 } from "./game/storage";
-import type {
-  GameState,
-  Individual,
-  Priority,
-  Species,
-  Stats,
-} from "./game/types";
+import type { GameState, Individual, Species } from "./game/types";
 import credits from "./data/image-credits.json";
 import "./App.css";
 
@@ -53,6 +44,21 @@ type Screen =
   | "family"
   | "summary"
   | "settings";
+const screens: Screen[] = [
+  "menu",
+  "birth",
+  "life",
+  "journal",
+  "collection",
+  "packs",
+  "family",
+  "summary",
+  "settings",
+];
+const screenFromLocation = (): Screen => {
+  const value = window.location.hash.slice(1) as Screen;
+  return screens.includes(value) ? value : "menu";
+};
 const navigation: { id: Screen; label: string; icon: string }[] = [
   { id: "menu", label: "Overview", icon: "home" },
   { id: "life", label: "Your life", icon: "leaf" },
@@ -61,159 +67,6 @@ const navigation: { id: Screen; label: string; icon: string }[] = [
   { id: "packs", label: "Field packs", icon: "pack" },
   { id: "family", label: "Bloodline", icon: "tree" },
 ];
-function Icon({ name, size = 20 }: { name: string; size?: number }) {
-  const paths: Record<string, ReactNode> = {
-    home: (
-      <>
-        <path d="m3 10 9-7 9 7v10H3Z" />
-        <path d="M9 20v-7h6v7" />
-      </>
-    ),
-    leaf: (
-      <>
-        <path d="M20 3C8 1 1 8 6 16c8 5 16-2 14-13Z" />
-        <path d="m3 21 12-12M9 15v-5m0 5h5" />
-      </>
-    ),
-    book: (
-      <>
-        <path d="M12 5C9 3 5 3 2 4v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-3-1-7-1-10 1Z" />
-        <path d="M12 5v15" />
-      </>
-    ),
-    grid: (
-      <>
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </>
-    ),
-    pack: (
-      <>
-        <path d="m4 7 8-4 8 4v12l-8 3-8-3Zm0 0 8 4 8-4M12 11v11M8 5l8 4" />
-      </>
-    ),
-    tree: (
-      <>
-        <circle cx="12" cy="5" r="3" />
-        <circle cx="5" cy="19" r="3" />
-        <circle cx="19" cy="19" r="3" />
-        <path d="M12 8v5H5v3m7-3h7v3" />
-      </>
-    ),
-    settings: (
-      <>
-        <circle cx="12" cy="12" r="4" />
-        <path d="m9 3 1-2h4l1 2 3 2h3l2 4-2 2v3l1 3-3 3-3-1-3 2-3-1-3 1-3-3 1-3-2-3 1-3 3-1Z" />
-      </>
-    ),
-    coin: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M15 8h-4a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9m3-10v12" />
-      </>
-    ),
-    arrow: (
-      <>
-        <path d="M4 12h16m-6-6 6 6-6 6" />
-      </>
-    ),
-  };
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {paths[name] ?? paths.leaf}
-    </svg>
-  );
-}
-function Photo({
-  species,
-  className = "",
-}: {
-  species: Species;
-  className?: string;
-}) {
-  const credit = credits.find((c) => c.id === species.id && !("error" in c));
-  return credit ? (
-    <img
-      className={`species-photo ${className}`}
-      src={`${import.meta.env.BASE_URL}species/${species.id}.jpg`}
-      alt={species.name}
-    />
-  ) : (
-    <div className={`photo-fallback ${className}`}>
-      <Icon name="leaf" size={80} />
-      <span>{species.name}</span>
-    </div>
-  );
-}
-function Tag({ children, tone = "" }: { children: ReactNode; tone?: string }) {
-  return <span className={`tag ${tone}`}>{children}</span>;
-}
-function SectionTitle({
-  eyebrow,
-  title,
-  detail,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  detail?: string;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="section-heading">
-      <div>
-        <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-        {detail && <p className="muted">{detail}</p>}
-      </div>
-      {children}
-    </div>
-  );
-}
-function Meter({
-  label,
-  value,
-  reverse = false,
-}: {
-  label: string;
-  value: number;
-  reverse?: boolean;
-}) {
-  const warning = (reverse ? 100 - value : value) < 30;
-  return (
-    <div className={`meter ${warning ? "warning" : ""}`}>
-      <div>
-        <span>{label}</span>
-        <b>
-          {Math.round(value)}
-          <small>/100</small>
-        </b>
-      </div>
-      <div
-        className="meter-track"
-        role="meter"
-        aria-label={label}
-        aria-valuenow={Math.round(value)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <i style={{ width: `${value}%` }} />
-      </div>
-    </div>
-  );
-}
 function App() {
   const [loaded] = useState(() => {
     try {
@@ -228,7 +81,7 @@ function App() {
   const [game, setGame] = useState<GameState>(
     () => loaded.state ?? createGame(),
   );
-  const [screen, setScreen] = useState<Screen>("menu");
+  const [screen, setScreen] = useState<Screen>(screenFromLocation);
   const [notice, setNotice] = useState(loaded.warning ?? "");
   const [saveBlocked, setSaveBlocked] = useState(!!loaded.blocked);
   const [saveStatus, setSaveStatus] = useState(
@@ -236,11 +89,6 @@ function App() {
   );
   const [mode, setMode] = useState<"random" | "manual">("random");
   const [selectedSpecies, setSelectedSpecies] = useState("wolf");
-  const [scenario, setScenario] = useState("2020");
-  const [seed, setSeed] = useState(
-    () => `field-${Math.floor(Date.now() / 1000)}`,
-  );
-  const [revealed, setRevealed] = useState(false);
   const [inspect, setInspect] = useState<Species | null>(null);
   const [filter, setFilter] = useState("all");
   const [importText, setImportText] = useState("");
@@ -312,7 +160,21 @@ function App() {
       previous?.focus();
     };
   }, [inspect, confirm]);
+  useEffect(() => {
+    const restore = () => {
+      setScreen(screenFromLocation());
+      setInspect(null);
+    };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
   function navigate(to: Screen) {
+    if (screenFromLocation() !== to)
+      window.history.pushState(
+        null,
+        "",
+        to === "menu" ? window.location.pathname : `#${to}`,
+      );
     setScreen(to);
     setInspect(null);
   }
@@ -367,7 +229,6 @@ function App() {
         localStorage.removeItem(BACKUP_KEY);
         setGame(createGame());
         setSaveBlocked(false);
-        setRevealed(false);
         setSelectedRecord(null);
         navigate("menu");
         setNotice("A fresh field notebook. All local progress has been reset.");
@@ -382,7 +243,6 @@ function App() {
         setGame(imported);
         setSaveBlocked(false);
         setImportText("");
-        setRevealed(false);
         navigate("menu");
         setNotice("Backup imported and saved successfully.");
       }
@@ -401,6 +261,50 @@ function App() {
         : screen === "settings"
           ? "Settings"
           : navigation.find((n) => n.id === screen)?.label;
+  if (screen === "birth")
+    return (
+      <BirthSequence
+        game={game}
+        initialSpecies={mode === "manual" ? selectedSpecies : undefined}
+        onCancel={() => navigate("menu")}
+        onResume={() => navigate("life")}
+        onBegin={(next) => {
+          setGame(next);
+          navigate("life");
+        }}
+      />
+    );
+  if (screen === "life" && a?.alive)
+    return (
+      <GameplayScreen
+        game={game}
+        saveStatus={saveStatus}
+        busy={busy}
+        notice={notice}
+        onDismiss={() => setNotice("")}
+        onAction={(action) => attempt(() => update(act(game, action)))}
+        onSkip={doSkip}
+        onPaced={() =>
+          attempt(() => {
+            const result = advancePaced(game);
+            update(result.state);
+            setNotice(
+              `${result.phases} phases resolved.${result.interrupted ? " Paused for an important change." : " Routine life continues."}`,
+            );
+          })
+        }
+        onChange={setGame}
+        onView={navigate}
+        onGuide={() => {
+          navigate("collection");
+          setInspect(sp);
+        }}
+        onExit={() => {
+          if (!saveBlocked) attempt(() => persistGame(game, localStorage));
+          navigate("menu");
+        }}
+      />
+    );
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -452,6 +356,11 @@ function App() {
             FIELD NOTEBOOK <span>/</span> <b>{navLabel}</b>
           </div>
           <div className="topbar-right">
+            {a?.alive && screen !== "menu" && (
+              <button className="text-button" onClick={() => navigate("life")}>
+                Return to Life
+              </button>
+            )}
             <span className="save-indicator">
               <i className={saveBlocked ? "unsaved" : ""} />
               {saveStatus}
@@ -495,8 +404,8 @@ function App() {
           {screen === "menu" && (
             <>
               <SectionTitle
-                eyebrow="THE LIVING WORLD AWAITS"
-                title="One world. Countless lives."
+                eyebrow="EVERY LIFE BEGINS SOMEWHERE"
+                title="Lottery of Life"
                 detail="A life is not measured in years, but in the days you survive."
               />
               <section className="hero">
@@ -516,11 +425,22 @@ function App() {
                   </p>
                   <button
                     className="button primary"
-                    onClick={() => navigate(a?.alive ? "life" : "birth")}
+                    onClick={() => {
+                      setMode("random");
+                      navigate("birth");
+                    }}
                   >
-                    {a?.alive ? "Continue your life" : "Begin a new life"}
+                    New Life
                     <Icon name="arrow" />
                   </button>
+                  {a?.alive && (
+                    <button
+                      className="button subtle menu-continue"
+                      onClick={() => navigate("life")}
+                    >
+                      Continue Life <Icon name="arrow" />
+                    </button>
+                  )}
                   <span className="hero-caption">
                     10 starting species · A different perspective every time
                   </span>
@@ -603,7 +523,7 @@ function App() {
                 </p>
                 <span>FIELD NOTE № 01</span>
               </div>
-              {game.records.length > 0 && (
+              {
                 <button
                   className="text-button"
                   onClick={() => {
@@ -611,485 +531,28 @@ function App() {
                     navigate("summary");
                   }}
                 >
-                  Read your latest lifetime record{" "}
-                  <Icon name="arrow" size={16} />
+                  Lifetime Records <Icon name="arrow" size={16} />
                 </button>
-              )}
+              }
             </>
           )}
-          {screen === "birth" && (
-            <>
-              <SectionTitle
-                eyebrow="A NEW PERSPECTIVE"
-                title={
-                  revealed && a
-                    ? "Your story begins here."
-                    : "The lottery of life."
-                }
-                detail="A species. A place. A moment in history. A life that has never existed before."
-              />
-              {a?.alive && !revealed ? (
-                <div className="panel empty">
-                  <Icon name="leaf" size={42} />
-                  <h2>A life is already unfolding.</h2>
-                  <p>
-                    Continue as {a.name}, or archive this life in Settings
-                    before beginning another.
-                  </p>
-                  <button
-                    className="button primary"
-                    onClick={() => navigate("life")}
-                  >
-                    Return to your life
-                  </button>
-                </div>
-              ) : revealed && a ? (
-                <div className="birth-layout">
-                  <div className="birth-portrait">
-                    <Photo species={sp} />
-                    <div>
-                      <Tag tone="gold">
-                        GENERATION {a.generation.toString().padStart(2, "0")}
-                      </Tag>
-                      <h2>{a.name}</h2>
-                      <i>{sp.scientific}</i>
-                    </div>
-                  </div>
-                  <section className="panel birth-result">
-                    <p className="eyebrow">YOUR BIRTH RECORD</p>
-                    {[
-                      ["01", "Species", `${sp.name} · ${a.caste ?? a.sex}`],
-                      [
-                        "02",
-                        "Birthplace",
-                        `${game.environment!.location.place} · ${game.environment!.location.continent}`,
-                      ],
-                      ["03", "Birth date", formatDate(a.birth)],
-                      [
-                        "04",
-                        "Individual",
-                        `${stageOf(a).name} · Resilience ${Math.round(a.traits.resilience)} · ${sp.social}`,
-                      ],
-                    ].map(([n, label, value]) => (
-                      <div className="birth-step" key={n}>
-                        <span>{n}</span>
-                        <div>
-                          <small>{label}</small>
-                          <p>{value}</p>
-                        </div>
-                      </div>
-                    ))}
-                    <p className="muted small">{sp.challenge}</p>
-                    <button
-                      className="button primary full"
-                      onClick={() => {
-                        setRevealed(false);
-                        navigate("life");
-                      }}
-                    >
-                      Enter this life <Icon name="arrow" />
-                    </button>
-                  </section>
-                </div>
-              ) : (
-                <div className="birth-layout">
-                  <section className="panel generator">
-                    <div className="section-heading compact">
-                      <h2>Let nature decide.</h2>
-                      <Tag>SEEDED GENERATION</Tag>
-                    </div>
-                    <label className="field-label">01 / YOUR SPECIES</label>
-                    <div className="segmented">
-                      <button
-                        className={mode === "random" ? "selected" : ""}
-                        onClick={() => setMode("random")}
-                      >
-                        Random birth
-                      </button>
-                      <button
-                        className={mode === "manual" ? "selected" : ""}
-                        onClick={() => setMode("manual")}
-                      >
-                        Choose species
-                      </button>
-                    </div>
-                    {mode === "manual" ? (
-                      <label className="input-label">
-                        Unlocked species
-                        <select
-                          value={selectedSpecies}
-                          onChange={(e) => setSelectedSpecies(e.target.value)}
-                        >
-                          {SPECIES.filter((s) =>
-                            game.unlocked.includes(s.id),
-                          ).map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    ) : (
-                      <p className="muted small">
-                        An equal chance of any of your {game.unlocked.length}{" "}
-                        unlocked species. Future discoveries join this pool
-                        automatically.
-                      </p>
-                    )}
-                    <label className="field-label">
-                      02 / HISTORICAL SETTING
-                    </label>
-                    <div className="scenario-list">
-                      {SCENARIOS.map((s) => (
-                        <label
-                          className={`scenario ${scenario === s.id ? "selected" : ""}`}
-                          key={s.id}
-                        >
-                          <input
-                            type="radio"
-                            name="scenario"
-                            value={s.id}
-                            checked={scenario === s.id}
-                            onChange={() => setScenario(s.id)}
-                          />
-                          <span>
-                            <b>{s.year}</b>
-                            <strong>{s.title}</strong>
-                            <small>{s.description}</small>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    <label className="input-label">
-                      03 / WORLD SEED
-                      <input
-                        value={seed}
-                        onChange={(e) => setSeed(e.target.value)}
-                        maxLength={100}
-                      />
-                    </label>
-                    <p className="muted small">
-                      The same seed and choices produce the same beginning and
-                      random sequence.
-                    </p>
-                    <button
-                      className="button primary full"
-                      disabled={!seed.trim()}
-                      onClick={() =>
-                        attempt(() => {
-                          const next = startLife(game, {
-                            speciesId:
-                              mode === "manual" ? selectedSpecies : undefined,
-                            scenarioId: scenario,
-                            seed,
-                          });
-                          setGame(next);
-                          setRevealed(true);
-                        })
-                      }
-                    >
-                      Draw a life <Icon name="arrow" />
-                    </button>
-                  </section>
-                  <div className="birth-portrait">
-                    <Photo
-                      species={speciesById(
-                        mode === "manual" ? selectedSpecies : "wolf",
-                      )}
-                    />
-                    <div>
-                      <Tag tone="gold">NO TWO LIVES ARE THE SAME</Tag>
-                      <h2>
-                        {mode === "manual"
-                          ? speciesById(selectedSpecies).name
-                          : "Born into the wild."}
-                      </h2>
-                      <p>
-                        Geography and biology set the stage.
-                        <br />
-                        What happens next is up to you — and nature.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+          {screen === "life" && (
+            <Empty
+              title={
+                a ? "This life has ended." : "Every life begins somewhere."
+              }
+              detail={
+                a
+                  ? "Death is permanent. Your family history and collection remain."
+                  : "Draw a life to enter the living world."
+              }
+              button={a ? "Read lifetime summary" : "New Life"}
+              onClick={() => {
+                if (a) setSelectedRecord(a.id);
+                navigate(a ? "summary" : "birth");
+              }}
+            />
           )}
-          {screen === "life" &&
-            (!a ? (
-              <Empty
-                title="Every life begins somewhere."
-                detail="Draw your first life to enter the living world."
-                button="Begin a new life"
-                onClick={() => navigate("birth")}
-              />
-            ) : !a.alive ? (
-              <Empty
-                title="This life has ended."
-                detail="Death is permanent. Your collection and family history remain."
-                button="Read lifetime summary"
-                onClick={() => {
-                  setSelectedRecord(a.id);
-                  navigate("summary");
-                }}
-              />
-            ) : (
-              <>
-                <SectionTitle
-                  eyebrow={`GENERATION ${a.generation.toString().padStart(2, "0")} · ${SCENARIOS.find((s) => s.id === game.environment?.scenarioId)?.title.toUpperCase()}`}
-                  title={`A day in the life of ${a.name}.`}
-                  detail={`${formatDate(game.date)} · ${game.environment!.location.place}`}
-                >
-                  <Tag tone="green">
-                    <span className="status-dot" /> ALIVE
-                  </Tag>
-                </SectionTitle>
-                <div className="life-layout">
-                  <aside className="individual-column">
-                    <div className="individual-card">
-                      <div className="individual-image">
-                        <Photo species={sp} />
-                        <Tag tone="gold">{sp.rarity.toUpperCase()}</Tag>
-                      </div>
-                      <div className="individual-details">
-                        <span className="eyebrow">{sp.group}</span>
-                        <h2>{sp.name}</h2>
-                        <i>{sp.scientific}</i>
-                        <div className="identity-grid">
-                          <div>
-                            <small>AGE</small>
-                            <b>{ageLabel(a.ageDays)}</b>
-                          </div>
-                          <div>
-                            <small>LIFE STAGE</small>
-                            <b>{stageOf(a).name}</b>
-                          </div>
-                          <div>
-                            <small>SEX / ROLE</small>
-                            <b>{a.caste ?? a.sex}</b>
-                          </div>
-                          <div>
-                            <small>ACTIVITY</small>
-                            <b>{sp.active}</b>
-                          </div>
-                        </div>
-                        <button
-                          className="text-button"
-                          onClick={() => setInspect(sp)}
-                        >
-                          Species field guide{" "}
-                          <span>
-                            <Icon name="arrow" size={14} />
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="panel environment">
-                      <span className="eyebrow">AROUND YOU</span>
-                      <h3>{game.environment!.location.habitat}</h3>
-                      <div>
-                        <span>{game.environment!.weather}</span>
-                        <b>{Math.round(game.environment!.temperature)}°C</b>
-                      </div>
-                      <div>
-                        <span>Food availability</span>
-                        <b>{Math.round(game.environment!.food * 100)}%</b>
-                      </div>
-                      <div>
-                        <span>Social bond</span>
-                        <b>{Math.round(a.stats.bond)}/100</b>
-                      </div>
-                      <p className="muted small">
-                        Watch for {sp.predators.join(" and ").toLowerCase()}.{" "}
-                        {sp.challenge}
-                      </p>
-                    </div>
-                  </aside>
-                  <div className="daily-column">
-                    <section className="panel vitals">
-                      <div className="section-heading compact">
-                        <h2>Condition</h2>
-                        <span className="muted small">
-                          Every choice has a cost
-                        </span>
-                      </div>
-                      <div className="meters">
-                        {(
-                          [
-                            ["health", "Health"],
-                            ["energy", "Energy"],
-                            ["hunger", "Hunger"],
-                            ["hydration", "Hydration"],
-                            ["stress", "Stress"],
-                            ["injury", "Injury"],
-                          ] as [keyof Stats, string][]
-                        ).map(([key, label]) => (
-                          <Meter
-                            key={key}
-                            label={label}
-                            value={a.stats[key]}
-                            reverse={["hunger", "stress", "injury"].includes(
-                              key,
-                            )}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                    <section className="panel decision-panel">
-                      <div className="phase-track" aria-label="Day phases">
-                        {PHASES.map((phase, index) => (
-                          <div
-                            key={phase}
-                            className={`${index === game.phase ? "current" : ""} ${index < game.phase ? "past" : ""}`}
-                            aria-current={
-                              index === game.phase ? "step" : undefined
-                            }
-                          >
-                            <span>{["◒", "☀", "◓", "☾"][index]}</span>
-                            <b>{phase}</b>
-                            <small>
-                              {index === game.phase
-                                ? "NOW"
-                                : index < game.phase
-                                  ? "COMPLETE"
-                                  : "AHEAD"}
-                            </small>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="decision-heading">
-                        <p className="eyebrow">
-                          {PHASES[game.phase].toUpperCase()} · CHOOSE ONE ACTION
-                        </p>
-                        <h2>
-                          {stageOf(a).dependent
-                            ? "A small life, a vulnerable beginning."
-                            : "How will you spend this phase?"}
-                        </h2>
-                        <p className="muted small">
-                          {stageOf(a).dependent
-                            ? "You depend on protection and stored or provisioned nourishment. Independent behavior comes with development."
-                            : `Naturally ${sp.active === "night" ? "nocturnal" : sp.active === "day" ? "diurnal" : "most active around dawn and dusk"}. Lower hunger, stress and injury are better.`}
-                        </p>
-                      </div>
-                      <div className="action-grid">
-                        {availableActions(game).map((action) => (
-                          <button
-                            key={action}
-                            className="action-card"
-                            disabled={busy}
-                            onClick={() =>
-                              attempt(() => update(act(game, action)))
-                            }
-                          >
-                            <span className="action-icon">
-                              {action === "explore" ? (
-                                <Icon name="arrow" size={20} />
-                              ) : (
-                                ACTIONS[action].icon
-                              )}
-                            </span>
-                            <span>
-                              <b>{actionTitle(game, action)}</b>
-                              <small>
-                                {action === "feed" && stageOf(a).dependent
-                                  ? "Depend on your nursery. Restore condition if resources are available."
-                                  : ACTIONS[action].detail}
-                              </small>
-                            </span>
-                            <span className="action-chevron">
-                              <Icon name="arrow" size={14} />
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                    <section className="panel time-panel">
-                      <div className="section-heading compact">
-                        <div>
-                          <h3>Let life unfold</h3>
-                          <p className="muted small">
-                            Routine behavior continues. Survival is never
-                            guaranteed.
-                          </p>
-                        </div>
-                        <Icon name="leaf" />
-                      </div>
-                      <label className="priority">
-                        Autonomous priority
-                        <select
-                          value={game.priority}
-                          onChange={(e) =>
-                            setGame({
-                              ...game,
-                              priority: e.target.value as Priority,
-                            })
-                          }
-                        >
-                          {[
-                            "survival",
-                            "feeding",
-                            "reproduction",
-                            "exploration",
-                          ].map((p) => (
-                            <option key={p} value={p}>
-                              {p[0].toUpperCase() + p.slice(1)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <div className="skip-controls">
-                        {skipOptions(game).map((days) => (
-                          <button
-                            className="button subtle"
-                            key={days}
-                            disabled={busy}
-                            onClick={() => doSkip(days)}
-                          >
-                            {days === 1
-                              ? "Next day"
-                              : days === 365
-                                ? "Skip 1 year"
-                                : `Skip ${days} days`}{" "}
-                            <span>»</span>
-                          </button>
-                        ))}
-                      </div>
-                      <p className="small muted">
-                        {busy
-                          ? "Resolving each phase…"
-                          : "Skips can stop early for serious danger. Rare opportunities may pass unnoticed."}
-                      </p>
-                    </section>
-                    <section className="recent-journal">
-                      <div className="section-heading compact">
-                        <h3>From your journal</h3>
-                        <button
-                          className="text-button"
-                          onClick={() => navigate("journal")}
-                        >
-                          Read all <Icon name="arrow" size={16} />
-                        </button>
-                      </div>
-                      {lifeJournal
-                        .slice(-3)
-                        .reverse()
-                        .map((e) => (
-                          <div className={`journal-line ${e.kind}`} key={e.id}>
-                            <span className="journal-dot" />
-                            <div>
-                              <small>
-                                {formatDate(e.date)} · {e.phase}
-                              </small>
-                              <p>{e.text}</p>
-                            </div>
-                          </div>
-                        ))}
-                    </section>
-                  </div>
-                </div>
-              </>
-            ))}
           {screen === "journal" && (
             <>
               <SectionTitle
@@ -1559,7 +1022,7 @@ function App() {
                       rows={5}
                       value={importText}
                       onChange={(e) => setImportText(e.target.value)}
-                      placeholder="Paste your version 1 save here…"
+                      placeholder="Paste your version 1 or 2 save here…"
                     />
                   </label>
                   <button
@@ -1584,9 +1047,9 @@ function App() {
                     values are simplified game parameters.
                   </p>
                   <p className="muted">
-                    Phase 1 supports modern scenarios only. Gregorian dates use
-                    astronomical years internally; prehistoric ecology is not
-                    implemented.
+                    Births sample continuous supported species windows. Past
+                    ecosystems are broad, transparent approximations; a
+                    planetary reconstruction is not implemented.
                   </p>
                   <p className="muted">
                     No real-money purchases, external AI, analytics,
@@ -1739,8 +1202,8 @@ function App() {
                 <Icon name="arrow" size={14} />
               </a>
               <p className="small muted">
-                Playable dates: 1900, 1980, 2020. Rarity does not describe
-                conservation status.
+                Supported dates follow each species’ history profile. Rarity
+                does not describe conservation status.
               </p>
               <button
                 className="button primary full"
@@ -1748,7 +1211,6 @@ function App() {
                 onClick={() => {
                   setMode("manual");
                   setSelectedSpecies(inspect.id);
-                  setRevealed(false);
                   navigate("birth");
                 }}
               >
