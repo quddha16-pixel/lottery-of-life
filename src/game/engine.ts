@@ -1,3 +1,4 @@
+import { snapshot, recordOutcome, urgentNeed } from "./outcomes";
 import { SPECIES, STARTERS, speciesById } from "../data/species";
 import { generateBirthContext } from "./history";
 import {
@@ -494,7 +495,9 @@ function birthOffspring(s: GameState) {
   );
 }
 export function act(state: GameState, action: Action): GameState {
-  return resolvePhase(copy(state), action);
+  const before = snapshot(state);
+  const next = resolvePhase(copy(state), action);
+  return recordOutcome(next, before, actionTitle(state, action), next.journal.at(-1)?.text ?? "A phase passes.", 1);
 }
 function resolvePhase(
   state: GameState,
@@ -530,6 +533,8 @@ function resolvePhase(
     !(activity && current(state)?.alive)
   )
     throw new Error("Action unavailable for this life stage or condition");
+  state.area!.feedback = undefined;
+  state.area!.outcome = undefined;
   const s = state,
     a = current(s)!,
     sp = speciesById(a.speciesId),
@@ -565,6 +570,14 @@ function resolvePhase(
         "Sensory experience accumulates around your caregivers; independence still lies ahead.";
       break;
     case "feed": {
+      if (dependent) {
+        const caregiver = nearby(s).find(n => n.role === "mother");
+        if (caregiver) {
+          caregiver.hunger = clamp(caregiver.hunger + 9);
+          caregiver.energy = clamp(caregiver.energy - 7);
+          caregiver.bond = clamp(caregiver.bond + 3);
+        }
+      }
       const resource =
         env.food * (dependent ? careFactor(s) : speciesFoodFactor(s));
       const success =
@@ -824,6 +837,8 @@ export function routineAction(
     actions = availableActions(s),
     stats = a.stats;
   const world = s.world;
+  if (stageOf(a).dependent && stats.hydration < 55 && actions.includes("feed")) return "feed";
+  if (stats.hydration < 35 && actions.includes("drink")) return "drink";
   if (stats.energy < 30) return "rest";
   const biology = a.biology!;
   if (a.speciesId === "ant" && !stageOf(a).dependent) {
@@ -928,6 +943,8 @@ export function advanceDays(
 ): { state: GameState; phases: number; interrupted: boolean } {
   if (!Number.isInteger(days) || days < 1 || days > 365)
     throw new Error("Skip must be 1–365 days");
+  if (!current(state)?.alive) return {state:copy(state), phases:0, interrupted:false};
+  const beforeState = snapshot(state);
   let s = copy(state);
   let phases = 0;
   let interrupted = false;
@@ -945,6 +962,7 @@ export function advanceDays(
       break;
     }
   }
+  recordOutcome(s, beforeState, "Time advance", s.journal.at(-1)?.text ?? "Life continues.", phases);
   return { state: s, phases, interrupted };
 }
 export function continueBloodline(
@@ -1016,6 +1034,7 @@ export function advancePaced(state: GameState): {
   const dependent = current(state) ? stageOf(current(state)!).dependent : false;
   const budget =
     state.pacing === "balanced" ? (dependent ? 16 : 4) : dependent ? 120 : 28;
+  const beforeState = snapshot(state);
   let s = copy(state),
     phases = 0,
     interrupted = false;
@@ -1040,6 +1059,7 @@ export function advancePaced(state: GameState): {
         ["predator", "rival", "prey", "mate"].includes(
           s.area.encounter.kind,
         )) ||
+      !!urgentNeed(s) ||
       current(s)!.stats.health < 30 ||
       health - current(s)!.stats.health > 12 ||
       changed
@@ -1048,6 +1068,7 @@ export function advancePaced(state: GameState): {
       break;
     }
   }
+  recordOutcome(s, beforeState, "Life unfolds", s.area?.feedback ?? s.journal.at(-1)?.text ?? "Life continues.", phases);
   return { state: s, phases, interrupted };
 }
 
@@ -1056,6 +1077,7 @@ export function interact(
   state: GameState,
   interactionId: InteractionId,
 ): GameState {
+  const beforeState = snapshot(state);
   const s = copy(state);
   ensureArea(s);
   const option = interactions(s, availableActions(s)).find(
@@ -1084,13 +1106,14 @@ export function interact(
               ),
           )?.text
         : undefined;
-    const feedback = result ? `${result} ${text}` : text;
+    const feedback = result ? `${text} ${result}` : text;
     next.area!.feedback = feedback;
     log(next, feedback);
   } else next.area!.feedback = next.journal.at(-1)?.text;
-  return next;
+  return recordOutcome(next, beforeState, option.title, next.area!.feedback ?? "A phase passes.", 1);
 }
 export function travel(state: GameState, destination: string): GameState {
+  const beforeState = snapshot(state);
   let s = copy(state);
   ensureArea(s);
   const route = travelEligibility(s, destination);
@@ -1126,12 +1149,13 @@ export function travel(state: GameState, destination: string): GameState {
     s.area!.feedback = text;
     log(s, text);
   }
-  return s;
+  return recordOutcome(s, beforeState, "Travel", s.area!.feedback ?? "The journey ends.", route.phases);
 }
 export function respondToEncounter(
   state: GameState,
   response: ResponseId,
 ): GameState {
+  const beforeState = snapshot(state);
   const s = copy(state);
   ensureArea(s);
   const e = s.area!.encounter,
@@ -1197,7 +1221,7 @@ export function respondToEncounter(
   next.area!.feedback = text;
   if (current(next)?.alive)
     log(next, text, response === "challenge" ? "danger" : "routine");
-  return next;
+  return recordOutcome(next, beforeState, option.title, text, 1);
 }
 export function meetAnimal(state: GameState, animalId: string): GameState {
   const s = copy(state);

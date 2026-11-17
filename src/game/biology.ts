@@ -864,16 +864,21 @@ export function tickBiology(
         ["home", "shade"].includes(where) &&
         b.stores.substrate > 0
       ) {
-        store(s, "substrate", -1);
-        store(s, "fungus", 1.5);
-        store(s, "contamination", -0.5);
+        if (b.stores.contamination > 35 && activity !== "clear-waste") {
+          store(s, "contamination", -8);
+        } else {
+          store(s, "substrate", -1);
+          store(s, "fungus", 1.5);
+          store(s, "contamination", -0.5);
+        }
       }
-      if (s.area!.animals.some((n) => n.alive && n.role === "companion")) {
+      if (s.area!.animals.some((n) => n.alive && n.role === "companion" && n.health > 30 && n.hunger < 85)) {
         store(s, "substrate", s.world!.vegetation * 0.2);
         if (b.stores.substrate > 0) {
           store(s, "substrate", -0.1);
           store(s, "fungus", 0.2);
-          store(s, "contamination", -0.15);
+          // Background workers maintain the garden while brood cannot act.
+        store(s, "contamination", -0.85);
         }
       }
       store(s, "contamination", 0.3 + (s.world!.moisture > 0.85 ? 0.5 : 0));

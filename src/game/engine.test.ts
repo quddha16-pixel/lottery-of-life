@@ -152,7 +152,7 @@ describe("phase and survival rules", () => {
     let manual = s;
     for (let i = 0; i < skipped.phases; i++)
       manual = act(manual, routineAction(manual));
-    expect(skipped.state).toEqual(manual);
+    expect(simulationState(skipped.state)).toEqual(simulationState(manual));
     expect(current(manual)!.ageDays).toBe(7);
     expect(manual.environment).not.toEqual(s.environment);
   });
@@ -421,3 +421,10 @@ describe("extended ecological and generational invariants", () => {
     expect(() => deserialize(serialize(s))).not.toThrow();
   });
 });
+
+// Batch summaries differ from a single phase; every simulation field must still match.
+function simulationState(s: GameState) {
+  const copy = structuredClone(s);
+  if (copy.area) { delete copy.area.outcome; delete copy.area.feedback; }
+  return copy;
+}

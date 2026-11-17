@@ -1,3 +1,4 @@
+import type { GameState } from "./types";
 import { describe, expect, it } from "vitest";
 import { SPECIES, speciesById } from "../data/species";
 import { generateBirthContext, sampleYear, MIN_YEAR } from "./history";
@@ -246,7 +247,7 @@ describe("development, personality, pacing and migration", () => {
       let manual = s;
       for (let i = 0; i < result.phases; i++)
         manual = act(manual, routineAction(manual));
-      expect(result.state).toEqual(manual);
+      expect(simulationState(result.state)).toEqual(simulationState(manual));
       expect(result.phases).toBeGreaterThan(0);
     });
   it("adaptive pacing stops at development, danger and death", () => {
@@ -371,3 +372,10 @@ it("receiving nursery food does not count as an adult worker contributing to the
     s = act(s, "wait");
   expect(current(s)!.colonyService).toBe(0);
 });
+
+// Batch summaries differ from a single phase; every simulation field must still match.
+function simulationState(s: GameState) {
+  const copy = structuredClone(s);
+  if (copy.area) { delete copy.area.outcome; delete copy.area.feedback; }
+  return copy;
+}
