@@ -1119,3 +1119,8 @@
     aspect-ratio: 2.25;
   }
 }
+@media (max-width: 760px) {
+  .wildlife-scene figcaption small {
+    display: none;
+  }
+}

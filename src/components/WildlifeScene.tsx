@@ -95,7 +95,7 @@ export function WildlifeScene({ game }: { game: GameState }) {
   return (
     <figure
       className={`wildlife-scene ${scene.palette} ${scene.phase} ${scene.rain ? "raining" : ""}`}
-      aria-label={`${PHASES[game.phase]} at ${scene.node.label}. ${scene.season}. ${game.environment!.weather}. ${stageOf(a).name} ${sp.name}.`}
+      aria-label={`${PHASES[game.phase]} at ${scene.node.label}. ${scene.season}. ${game.environment!.weather}. ${game.environment!.location.region}. ${stageOf(a).name} ${sp.name}.`}
     >
       <svg
         className="habitat-art"
@@ -278,7 +278,7 @@ export function WildlifeScene({ game }: { game: GameState }) {
         {supported && (
           <g
             className="scene-player"
-            transform={`translate(${a.speciesId === "ant" ? 275 : scene.dependent ? 235 : 180} ${a.speciesId === "ant" ? 205 : scene.dependent ? 220 : 175}) scale(${a.speciesId === "ant" ? 1.2 : scene.dependent ? 0.95 : 1.5})`}
+            transform={`translate(${a.speciesId === "ant" ? 275 : scene.dependent ? 235 : 180} ${a.speciesId === "ant" ? 130 : scene.dependent ? 120 : 100}) scale(${a.speciesId === "ant" ? 1.3 : scene.dependent ? 1.2 : 1.45})`}
           >
             <ellipse
               cx="102"

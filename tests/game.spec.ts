@@ -797,9 +797,13 @@ for (const sp of SPECIES)
           .slice(0, 10),
       })),
     ).toMatchObject({ scroll: page.viewportSize()!.width });
-    if (["elephant", "wolf", "ant"].includes(sp.id))
+    if (["elephant", "wolf", "ant"].includes(sp.id)) {
+      const actor = await page.locator(".scene-player").boundingBox();
+      const caption = await page.locator("figcaption").boundingBox();
+      expect(actor!.y + actor!.height * 0.65).toBeLessThan(caption!.y);
       await page.screenshot({
         path: `test-results/phase3-${sp.id}-${test.info().project.name}.png`,
         animations: "disabled",
       });
+    }
   });

@@ -28,7 +28,7 @@ Tests verify a unique bounded mastery bonus for each species, catalog-wide v2 mi
 - Actual abandonment followed by a living elephant in the same UI session: the archive notice is absent, while the lifetime record and currency remain intact.
 - Death/records, corrupt-save preservation, confirmed reset/import, JSON export, collection dialogs, focus handling and offspring continuation.
 - A 390 × 664 usable viewport checks that the first primary action is above the fixed navigation. Keyboard Enter activates navigation. Day/night and heavy-rain scene state is checked and captured.
-- Original elephant, wolf and ant scenes were visually inspected in desktop/mobile captures. Vector silhouettes are stylized, not anatomical reference plates. Other species retain credited photo/specimen fallbacks.
+- Foreground animals are positioned above mobile captions, with a bounding-box regression assertion. Original elephant, wolf and ant scenes were visually inspected in desktop/mobile captures. Vector silhouettes are stylized, not anatomical reference plates. Other species retain credited photo/specimen fallbacks.
 
 Screenshots are generated in ignored `test-results/`, including `active-first-screen-*`, `phase3-elephant-*`, `phase3-wolf-*`, `phase3-ant-*` and `night-rain-*`.
 
