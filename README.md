@@ -2,7 +2,7 @@
 
 A day-by-day animal survival game in `quddha16-pixel/lottery-of-life`, separate from Identifier Q and Soccer Pocket GM.
 
-This branch, **`development/living-world-overhaul`**, contains the birth/gameplay redesign and a first coherent local-world implementation of Phase 2. It is for review: **do not merge or deploy without explicit approval**. The existing Pages workflow triggers automatically only from `development/phase-1-foundation`; pushing this branch runs CI without publishing it.
+This process-review branch starts from the existing Phase 2 production baseline (`79ca0bd`). It prepares protected production releases from `main`, separate development previews and the three-stage completion standard. It does not include Phase 3 gameplay or implement Phase 3C. **Do not merge or publish without Quentin’s explicit approval.**
 
 ## Run
 
@@ -54,3 +54,11 @@ Playwright executes the production bundle at a Pages-style subpath, with externa
 Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and browser Back without server rewrites. The deployment workflow's existing source-branch restriction is unchanged. Nothing on this review branch should be published until approved.
 
 [Validation results](docs/OVERHAUL_VALIDATION.md) · [Historical model](docs/HISTORICAL_MODEL.md) · [Living-world model and continuation](docs/LIVING_WORLD.md) · [Model notes](docs/MODEL_NOTES.md) · [Assets](docs/ASSET_CREDITS.md)
+
+## Repository and release process
+
+[Release process and manual setup](docs/RELEASE_PROCESS.md) · [Proposed Phase 3C plan — not implemented](docs/PHASE3C_PLAN.md).
+
+The prepared production and preview workflows are manual-only, require an exact candidate SHA and fail unless their enable flag is true. GitHub settings writes returned 403, so owner setup is still required. No merge or deployment occurred during preparation. All historical phase branches and commits are preserved.
+
+Completion means **Implemented → Playable on Quentin’s iPhone → Released after approval and public verification**. Passing CI alone is not Playable or Released.
