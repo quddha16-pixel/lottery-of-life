@@ -1,16 +1,35 @@
-name: Deploy Lottery of Life to GitHub Pages
+name: Release Lottery of Life to GitHub Pages
 on:
-  push:
-    branches: [development/phase-1-foundation]
   workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Full main commit SHA explicitly approved for production
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
-  group: pages
+  group: lottery-of-life-production
   cancel-in-progress: false
 jobs:
-  build:
+  authorize:
     runs-on: ubuntu-latest
+    steps:
+      - name: Check production release prerequisites
+        env:
+          RELEASES_ENABLED: ${{ vars.PRODUCTION_RELEASES_ENABLED }}
+          RELEASE_REF: ${{ github.ref }}
+          EVENT_SHA: ${{ github.sha }}
+          APPROVED_SHA: ${{ inputs.release_sha }}
+        run: |
+          test "$RELEASES_ENABLED" = true || { echo 'Enable production releases only after the documented approval protections are configured.'; exit 1; }
+          test "$RELEASE_REF" = refs/heads/main || { echo 'Production releases must run from main.'; exit 1; }
+          [[ "$APPROVED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Provide a full commit SHA.'; exit 1; }
+          test "$APPROVED_SHA" = "$EVENT_SHA" || { echo 'Approval must name the exact selected main commit.'; exit 1; }
+  build:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
     permissions:
       contents: read
       pages: read
@@ -25,6 +44,8 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - name: Identify the tested production artifact
+        run: node scripts/prepare-site.mjs production "$GITHUB_SHA"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -32,7 +53,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: pages-browser-test-results
+          name: production-browser-test-results
           path: test-results
   deploy:
     needs: build
@@ -44,6 +65,36 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy tested artifact
+      - name: Deploy the approved, tested artifact
         id: deployment
         uses: actions/deploy-pages@v4
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the public release commit
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          node --input-type=module <<'JS'
+          const expected = process.env.RELEASE_SHA;
+          const url = `https://quddha16-pixel.github.io/lottery-of-life/build-info.json?release=${expected}`;
+          for (let attempt = 0; attempt < 12; attempt++) {
+            try {
+              const response = await fetch(url, {cache: 'no-store'});
+              if (response.ok) {
+                const info = await response.json();
+                if (info.commit === expected && info.channel === 'production') process.exit(0);
+              }
+            } catch {}
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          throw new Error('The public artifact has not been verified. Do not mark Released.');
+          JS
+      - name: Record the remaining release verification
+        run: |
+          {
+            echo '## Production artifact verified'
+            echo "Commit: $GITHUB_SHA"
+            echo 'Public metadata matches the approved commit. Complete the navigation, assets, save/reload and iPhone checks before recording Released.'
+          } >> "$GITHUB_STEP_SUMMARY"

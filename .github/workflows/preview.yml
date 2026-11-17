@@ -1,0 +1,137 @@
+name: Development preview (not production)
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Full integration-branch commit SHA explicitly approved for an iPhone preview
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: lottery-of-life-development-preview
+  cancel-in-progress: false
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    outputs:
+      candidate_sha: ${{ steps.candidate.outputs.sha }}
+      candidate_branch: ${{ steps.candidate.outputs.branch }}
+    steps:
+      - name: Check the selected integration candidate
+        id: candidate
+        env:
+          PREVIEWS_ENABLED: ${{ vars.DEVELOPMENT_PREVIEWS_ENABLED }}
+          INTEGRATION_BRANCH: ${{ vars.INTEGRATION_BRANCH }}
+          WORKFLOW_REF: ${{ github.ref }}
+          APPROVED_SHA: ${{ inputs.candidate_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$PREVIEWS_ENABLED" = true || { echo 'Preview hosting and approval protections must be configured before enabling previews.'; exit 1; }
+          test "$WORKFLOW_REF" = refs/heads/main || { echo 'Run the trusted preview workflow from main.'; exit 1; }
+          [[ "$INTEGRATION_BRANCH" =~ ^(develop|integration)$ ]] || { echo 'Set INTEGRATION_BRANCH to the approved non-conflicting branch name.'; exit 1; }
+          [[ "$APPROVED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Provide a full candidate SHA.'; exit 1; }
+          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$INTEGRATION_BRANCH" --jq .object.sha)
+          test "$APPROVED_SHA" = "$current_sha" || { echo 'The candidate must match the selected integration tip; review the exact commit before dispatch.'; exit 1; }
+          echo "sha=$APPROVED_SHA" >> "$GITHUB_OUTPUT"
+          echo "branch=$INTEGRATION_BRANCH" >> "$GITHUB_OUTPUT"
+  build:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out trusted release tooling
+        uses: actions/checkout@v4
+        with:
+          path: controls
+      - name: Check out the exact development candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.candidate_sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - run: npm ci
+        working-directory: source
+      - run: npm run lint
+        working-directory: source
+      - run: npm test
+        working-directory: source
+      - run: npx playwright install --with-deps chromium
+        working-directory: source
+      - run: npm run test:e2e
+        working-directory: source
+      - name: Label and package the development preview
+        env:
+          CANDIDATE_SHA: ${{ needs.authorize.outputs.candidate_sha }}
+        run: node ../controls/scripts/prepare-site.mjs preview "$CANDIDATE_SHA"
+        working-directory: source
+      - uses: actions/upload-artifact@v4
+        with:
+          name: development-preview-site
+          path: source/.preview-site
+          include-hidden-files: true
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: preview-browser-test-results
+          path: source/test-results
+  deploy:
+    needs: [authorize, build]
+    runs-on: ubuntu-latest
+    environment:
+      name: development-preview
+      url: ${{ steps.publish.outputs.url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: development-preview-site
+          path: preview-site
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Publish to the separate Cloudflare Pages Free project
+        id: publish
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PREVIEW_PROJECT: ${{ vars.CLOUDFLARE_PREVIEW_PROJECT }}
+          CANDIDATE_SHA: ${{ needs.authorize.outputs.candidate_sha }}
+          CANDIDATE_BRANCH: ${{ needs.authorize.outputs.candidate_branch }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Configure the preview-only Cloudflare credentials in the development-preview environment.'; exit 1; }
+          [[ "$PREVIEW_PROJECT" =~ ^[a-z0-9][a-z0-9-]{0,57}[a-z0-9]$ ]] || { echo 'Set a valid separate preview project name.'; exit 1; }
+          npx --yes wrangler@4.164.0 pages deploy preview-site --project-name "$PREVIEW_PROJECT" --branch "$CANDIDATE_BRANCH" --commit-hash "$CANDIDATE_SHA"
+          preview_url="https://$CANDIDATE_BRANCH.$PREVIEW_PROJECT.pages.dev/lottery-of-life/"
+          echo "url=$preview_url" >> "$GITHUB_OUTPUT"
+          {
+            echo '## Development preview — not a production release'
+            echo "Candidate: $CANDIDATE_SHA"
+            echo "iPhone link: $preview_url"
+            echo 'Passing this workflow does not establish Playable. Quentin must test this candidate on his iPhone.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify preview identity
+        env:
+          PREVIEW_URL: ${{ steps.publish.outputs.url }}
+          EXPECTED_SHA: ${{ needs.authorize.outputs.candidate_sha }}
+        run: |
+          node --input-type=module <<'JS'
+          const url = new URL('build-info.json', process.env.PREVIEW_URL);
+          url.searchParams.set('candidate', process.env.EXPECTED_SHA);
+          for (let attempt = 0; attempt < 12; attempt++) {
+            try {
+              const response = await fetch(url, {cache: 'no-store'});
+              if (response.ok) {
+                const info = await response.json();
+                if (info.commit === process.env.EXPECTED_SHA && info.channel === 'preview') process.exit(0);
+              }
+            } catch {}
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          throw new Error('Preview identity was not verified; do not mark Playable.');
+          JS
