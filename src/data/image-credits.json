@@ -1,0 +1,119 @@
+[
+  {
+    "id": "bumblebee",
+    "file": "Bombus_terrestris.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bombus_terrestris.jpg",
+    "artist": "Marco Almbauer",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "ant",
+    "file": "Atta_cephalotes-pjt.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Atta_cephalotes-pjt.jpg",
+    "artist": "Pjt56",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "rabbit",
+    "file": "Oryctolagus_cuniculus_-_euqirneto_-_419737670_(cropped).jpeg",
+    "source": "https://commons.wikimedia.org/wiki/File:Oryctolagus_cuniculus_-_euqirneto_-_419737670_(cropped).jpeg",
+    "artist": "euqirneto",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "wolf",
+    "file": "Eurasian_wolf_2.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Eurasian_wolf_2.jpg",
+    "artist": "User:Mas3cf",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "elephant",
+    "file": "178_Male_African_bush_elephant_in_Etosha_National_Park_Photo_by_Giles_Laurent.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:178_Male_African_bush_elephant_in_Etosha_National_Park_Photo_by_Giles_Laurent.jpg",
+    "artist": "Giles Laurent",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "mallard",
+    "file": "Anas_platyrhynchos_male_female_quadrat.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Anas_platyrhynchos_male_female_quadrat.jpg",
+    "artist": "\n\n\n\n\n\n\n\n\nThis picture was realized by Richard Bartz by using a Canon EF 70-300mm f/4-5.6 IS USM Lens   \n\n",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "octopus",
+    "file": "Octopus2.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Octopus2.jpg",
+    "artist": "albert kok",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "meerkat",
+    "file": "Meerkat_(Suricata_suricatta)_Tswalu.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Meerkat_(Suricata_suricatta)_Tswalu.jpg",
+    "artist": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "bullfrog",
+    "file": "North-American-bullfrog1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:North-American-bullfrog1.jpg",
+    "artist": "Carl D. Howe",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "raccoon",
+    "file": "Raccoon_in_Central_Park_(35264).jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Raccoon_in_Central_Park_(35264).jpg",
+    "artist": "Rhododendrites",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "fox",
+    "file": "Portrait_of_a_red_fox_in_Rautas_fj\u00e4llurskog_(cropped).jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Portrait_of_a_red_fox_in_Rautas_fj%C3%A4llurskog_(cropped).jpg",
+    "artist": "ClaudiaTen",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "robin",
+    "file": "Erithacus_rubecula_with_cocked_head.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Erithacus_rubecula_with_cocked_head.jpg",
+    "artist": "Francis C. Franklin",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  },
+  {
+    "id": "seal",
+    "file": "Common_seal_(Phoca_vitulina)_2.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Common_seal_(Phoca_vitulina)_2.jpg",
+    "artist": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "note": "Scaled thumbnail; displayed cropped."
+  }
+]
