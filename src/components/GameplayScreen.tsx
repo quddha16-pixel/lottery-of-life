@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { adventure, recommended, sceneChoices } from "../game/adventure";
+import { speciesAchievements } from "../game/biology";
+import { FieldDialog } from "./FieldDialog";
 import { speciesStatus } from "../game/biology";
 import { speciesById } from "../data/species";
 import {
@@ -29,6 +32,7 @@ import { Icon, Meter } from "./UI";
 import { WildlifeScene } from "./WildlifeScene";
 import "./Immersive.css";
 import "./Wildlife.css";
+import "./Adventure.css";
 type View = "journal" | "family" | "collection" | "packs" | "settings" | "menu";
 type Tab = "life" | "explore" | "social" | "journal" | "more";
 const tabs: Tab[] = ["life", "explore", "social", "journal", "more"];
@@ -48,6 +52,7 @@ interface Props {
   onMeet: (id: string) => void;
   onSkip: (n: number) => void;
   onPaced: () => void;
+  onOpportunity: () => void;
   onChange: (s: GameState) => void;
   onExit: () => void;
   onView: (v: View) => void;
@@ -65,6 +70,7 @@ export function GameplayScreen({
   onMeet,
   onSkip,
   onPaced,
+  onOpportunity,
   onChange,
   onExit,
   onView,
@@ -80,6 +86,10 @@ export function GameplayScreen({
   const [tab, setTab] = useState<Tab>(fromHash),
     [selected, setSelected] = useState(node.id),
     main = useRef<HTMLElement>(null);
+  const [focus, setFocus] = useState<
+    "animal" | "resource" | "family" | "result" | "discovery" | "route" | null
+  >(null);
+  const field = adventure(game);
   useEffect(() => {
     const restore = () => setTab(fromHash());
     window.addEventListener("popstate", restore);
@@ -103,10 +113,39 @@ export function GameplayScreen({
   const selectedNode = area.nodes.find((n) => n.id === selected) ?? node,
     route = travelEligibility(game, selectedNode.id),
     patch = world.patches.find((p) => p.id === selectedNode.id)!;
-  const options = interactions(game, availableActions(game)).map((o) =>
-    interactionText(game, o),
-  );
-  const latest = area.feedback ?? journal.at(-1)?.text;
+  const options = recommended(
+    game,
+    interactions(game, availableActions(game)),
+  ).map((o) => interactionText(game, o));
+  const latest = area.outcome?.summary ?? area.feedback ?? journal.at(-1)?.text;
+  function choose(o: (typeof options)[number]) {
+    setFocus(null);
+    onInteract(o.id);
+  }
+  function choice(o: (typeof options)[number]) {
+    return (
+      <button
+        className="game-action"
+        key={o.id}
+        title={o.detail}
+        disabled={busy}
+        onClick={() => choose(o)}
+      >
+        <span className="action-symbol" aria-hidden="true">
+          {actionSymbol(o.id)}
+        </span>
+        <span>
+          <b>{o.title}</b>
+          <small>{o.detail}</small>
+        </span>
+        <Icon name="arrow" size={15} />
+      </button>
+    );
+  }
+  const nursery = field.immobile;
+  const choiceCount = field.moment && field.stage.dependent ? 1 : 2;
+  const primary = nursery ? [] : options.slice(0, choiceCount);
+  const secondary = nursery ? options : options.slice(choiceCount);
   return (
     <main
       ref={main}
@@ -154,9 +193,12 @@ export function GameplayScreen({
           </div>
         )}
         {tab === "life" && (
-          <div className="rpg-life-layout">
+          <div className="rpg-life-layout adventure-life">
             <div className="rpg-scene-column">
-              <WildlifeScene game={game} />
+              <WildlifeScene
+                game={game}
+                onTarget={(target) => setFocus(target)}
+              />
               <div className="rpg-phase-row">
                 <ol aria-label="Day phases">
                   {PHASES.map((p, i) => (
@@ -177,29 +219,34 @@ export function GameplayScreen({
                 <Meter label="Hydration" value={a.stats.hydration} />
                 <Meter label="Energy" value={a.stats.energy} />
               </section>
-              <p className="rpg-nearby">
-                {people.length
-                  ? `${people
-                      .map((n) => n.name)
-                      .slice(0, 3)
-                      .join(" · ")} nearby`
-                  : "For the moment, you are alone here."}
-                <button onClick={() => navigate("social")}>
-                  Social <Icon name="arrow" size={13} />
-                </button>
-              </p>
+              <button className="field-goal" onClick={() => setFocus("animal")}>
+                <Icon name="leaf" size={14} />
+                <span>{field.profile.goal}</span>
+                <span aria-hidden="true">↗</span>
+              </button>
             </div>
             <div className="rpg-play-column">
-              <section className="rpg-situation">
-                <p className="eyebrow">HERE & NOW</p>
-                <h2>
-                  {stageOf(a).dependent
-                    ? "A world much larger than you."
-                    : node.kind === "boundary"
-                      ? "At the edge of familiar ground."
-                      : "A life in motion."}
-                </h2>
-                <p>{situationText(game)}</p>
+              <section
+                className={`adventure-context ${field.urgent ? "urgent" : ""}`}
+                aria-label="Current circumstances"
+              >
+                <p role={area.outcome ? "status" : undefined}>
+                  {field.urgent ??
+                    (area.outcome
+                      ? eventText(area.outcome.summary, game.narration)
+                      : game.narration === "detailed"
+                        ? situationText(game)
+                        : field.introduction)}
+                </p>
+                <button
+                  className="field-context-help"
+                  onClick={() => setFocus(area.outcome ? "result" : "animal")}
+                  aria-label={
+                    area.outcome ? "Explain the last result" : "About this life"
+                  }
+                >
+                  ?
+                </button>
               </section>
               {encounter && other ? (
                 <section
@@ -208,19 +255,18 @@ export function GameplayScreen({
                 >
                   <p className="eyebrow">
                     {encounter.kind === "companion"
-                      ? "A QUIET ENCOUNTER"
+                      ? "A QUIET MEETING"
                       : "AN ENCOUNTER"}
                   </p>
                   <h2>{other.name}</h2>
                   <p>
-                    {other.species} · {other.stage.toLowerCase()} ·{" "}
-                    {other.health < 50 ? "Wounded or weakened" : "Alert"}.{" "}
+                    {other.species}.{" "}
                     {encounter.kind === "predator"
                       ? "A predator is close. Distance and cover matter."
                       : encounter.kind === "rival"
-                        ? "Your presence draws their attention. Conflict can leave lasting injuries."
+                        ? "An unfamiliar animal notices you. Conflict can leave injuries."
                         : encounter.kind === "prey"
-                          ? "A feeding opportunity, with no guarantee of success."
+                          ? "A possible meal, with no guarantee of success."
                           : "You share this place for a moment."}
                   </p>
                   <div className="rpg-choices">
@@ -242,42 +288,75 @@ export function GameplayScreen({
                   aria-labelledby="decision-title"
                 >
                   <div className="rpg-section-heading">
-                    <h2 id="decision-title">What will you do?</h2>
-                    <span>One phase passes</span>
+                    <h2 id="decision-title">
+                      {nursery ? "A life taking shape" : "What will you do?"}
+                    </h2>
+                    <span>
+                      {nursery
+                        ? "Care and growth continue"
+                        : "One phase passes"}
+                    </span>
                   </div>
-                  <div className="rpg-choices">
-                    {options.map((o) => (
-                      <button
-                        className="game-action"
-                        key={o.id}
-                        title={o.detail}
-                        disabled={busy}
-                        onClick={() => onInteract(o.id)}
-                      >
-                        <span className="action-symbol" aria-hidden="true">
-                          {actionSymbol(o.id)}
-                        </span>
-                        <span>
-                          <b>{o.title}</b>
-                          <small>{o.detail}</small>
-                        </span>
-                        <Icon name="arrow" size={16} />
-                      </button>
-                    ))}
-                  </div>
+                  <div className="rpg-choices">{primary.map(choice)}</div>
+                  {field.moment && (
+                    <button
+                      className={`next-moment ${nursery ? "nursery-primary" : ""}`}
+                      disabled={busy}
+                      onClick={onOpportunity}
+                    >
+                      <Icon name="leaf" size={16} />
+                      <span>
+                        <b>
+                          {nursery
+                            ? "Watch life unfold"
+                            : "Continue to the next change"}
+                        </b>
+                        <small>
+                          {field.moment[1]} · routine care is simulated
+                        </small>
+                      </span>
+                      <Icon name="arrow" size={15} />
+                    </button>
+                  )}
+                  {secondary.length > 0 && (
+                    <details className="field-more-actions">
+                      <summary>
+                        {nursery ? "One phase at a time" : "More choices"}{" "}
+                        <span>{secondary.length}</span>
+                      </summary>
+                      <div className="rpg-choices">{secondary.map(choice)}</div>
+                    </details>
+                  )}
                 </section>
               )}
-              {latest && journal.at(-1)?.kind !== "birth" && (
-                <div className="rpg-feedback" role="status">
+              {area.outcome && (
+                <button
+                  className="field-changes"
+                  onClick={() => setFocus("result")}
+                >
                   <span>THE LAST MOMENT</span>
-                  <p>{eventText(latest, game.narration)}</p>
-                </div>
+                  <b>
+                    {area.outcome.changes.slice(0, 2).join(" · ") ||
+                      area.outcome.command}
+                  </b>
+                  <span>Details ↗</span>
+                </button>
               )}
+              <p className="rpg-nearby">
+                {people.length
+                  ? people
+                      .slice(0, 3)
+                      .map((n) => n.name)
+                      .join(" · ") + " nearby"
+                  : "No identified animals nearby."}
+                <button onClick={() => navigate("social")}>
+                  Social <Icon name="arrow" size={13} />
+                </button>
+              </p>
               <button className="rpg-routine" onClick={onPaced} disabled={busy}>
-                {" "}
                 {stageOf(a).dependent
                   ? "Advance routine care"
-                  : "Let life unfold"}{" "}
+                  : "Let life unfold"}
                 <span>
                   {game.pacing === "immersive"
                     ? "One phase"
@@ -290,6 +369,11 @@ export function GameplayScreen({
               <details className="rpg-condition">
                 <summary>Condition & experience</summary>
                 <p>{speciesStatus(game)}</p>
+                {field.stocks.map((r) => (
+                  <p key={r.key}>
+                    {r.label}: {Math.round(r.value)}
+                  </p>
+                ))}
                 <p>
                   Stress {Math.round(a.stats.stress)} · Injury{" "}
                   {Math.round(a.stats.injury)} · Social bond{" "}
@@ -301,6 +385,13 @@ export function GameplayScreen({
                 </p>
                 <button onClick={onGuide}>Species field guide</button>
               </details>
+              <button
+                className="field-discovery"
+                onClick={() => setFocus("discovery")}
+              >
+                <Icon name="book" />
+                Discover this species <span>Optional field notes ↗</span>
+              </button>
             </div>
           </div>
         )}
@@ -350,7 +441,10 @@ export function GameplayScreen({
                     className={`${n.id === node.id ? "here" : ""} ${n.id === selected ? "selected" : ""}`}
                     style={{ left: `${n.x}%`, top: `${n.y}%` }}
                     aria-pressed={selected === n.id}
-                    onClick={() => setSelected(n.id)}
+                    onClick={() => {
+                      setSelected(n.id);
+                      setFocus("route");
+                    }}
                   >
                     <span>
                       {n.kind === "water"
@@ -361,82 +455,12 @@ export function GameplayScreen({
                             ? "◇"
                             : "♧"}
                     </span>
-                    <b>{n.label}</b>
+                    <b>
+                      {field.visible.has(n.id) ? n.label : "Unfamiliar path"}
+                    </b>
                     {n.id === node.id && <small>You are here</small>}
                   </button>
                 ))}
-              </div>
-              <div className="rpg-location-detail">
-                <p className="eyebrow">
-                  {selectedNode.kind === "boundary"
-                    ? "EXPOSED GROUND"
-                    : "LOCAL HABITAT"}
-                </p>
-                <h2>{selectedNode.label}</h2>
-                <div className="rpg-resource-list">
-                  <span>
-                    Food{" "}
-                    <b>
-                      {patch.food > 0.65
-                        ? "Plentiful"
-                        : patch.food > 0.3
-                          ? "Limited"
-                          : "Depleted"}
-                    </b>
-                  </span>
-                  <span>
-                    Water{" "}
-                    <b>
-                      {patch.water > 0.6
-                        ? "Available"
-                        : patch.water > 0.25
-                          ? "Limited"
-                          : "Scarce"}
-                    </b>
-                  </span>
-                  <span>
-                    Cover <b>{patch.cover > 0.6 ? "Sheltered" : "Exposed"}</b>
-                  </span>
-                  <span>
-                    Predator risk{" "}
-                    <b>
-                      {selectedNode.exposure * world.predators > 0.25
-                        ? "Elevated"
-                        : "Lower"}
-                    </b>
-                  </span>
-                  <span>
-                    Temperature{" "}
-                    <b>
-                      {Math.round(
-                        game.environment!.temperature +
-                          selectedNode.temperatureOffset,
-                      )}
-                      °C
-                    </b>
-                  </span>
-                </div>
-                <p>
-                  {area.animals
-                    .filter((n) => n.alive && n.location === selectedNode.id)
-                    .map((n) => n.name)
-                    .join(" · ") || "No identified animals here."}
-                </p>
-                <p>{route.reason}</p>
-                {node.id !== selectedNode.id && (
-                  <button
-                    className="button primary"
-                    disabled={busy || !route.allowed}
-                    onClick={() => {
-                      onTravel(selectedNode.id);
-                      navigate("life");
-                    }}
-                  >
-                    {route.escorted ? "Follow family" : "Travel here"} ·{" "}
-                    {route.phases} phase{route.phases === 1 ? "" : "s"} ·{" "}
-                    {route.energy} energy + metabolism
-                  </button>
-                )}
               </div>
             </div>
             <details className="rpg-condition">
@@ -649,6 +673,225 @@ export function GameplayScreen({
           </section>
         )}
       </div>
+      {focus && (
+        <FieldDialog
+          title={
+            focus === "route"
+              ? selectedNode.label
+              : focus === "result"
+                ? "What happened"
+                : focus === "discovery"
+                  ? `Discover ${sp.name}`
+                  : focus === "family"
+                    ? "Life with others"
+                    : focus === "resource"
+                      ? field.profile.resource
+                      : field.profile.title
+          }
+          onClose={() => setFocus(null)}
+        >
+          {focus === "route" ? (
+            <div className="rpg-location-detail">
+              <p className="eyebrow">
+                {selectedNode.kind === "boundary"
+                  ? "EXPOSED GROUND"
+                  : "LOCAL HABITAT"}
+              </p>
+              <h2>{selectedNode.label}</h2>
+              <div className="rpg-resource-list">
+                <span>
+                  Food{" "}
+                  <b>
+                    {patch.food > 0.65
+                      ? "Plentiful"
+                      : patch.food > 0.3
+                        ? "Limited"
+                        : "Depleted"}
+                  </b>
+                </span>
+                <span>
+                  Water{" "}
+                  <b>
+                    {patch.water > 0.6
+                      ? "Available"
+                      : patch.water > 0.25
+                        ? "Limited"
+                        : "Scarce"}
+                  </b>
+                </span>
+                <span>
+                  Cover <b>{patch.cover > 0.6 ? "Sheltered" : "Exposed"}</b>
+                </span>
+                <span>
+                  Predator risk{" "}
+                  <b>
+                    {selectedNode.exposure * world.predators > 0.25
+                      ? "Elevated"
+                      : "Lower"}
+                  </b>
+                </span>
+                <span>
+                  Temperature{" "}
+                  <b>
+                    {Math.round(
+                      game.environment!.temperature +
+                        selectedNode.temperatureOffset,
+                    )}
+                    °C
+                  </b>
+                </span>
+              </div>
+              <p>
+                {area.animals
+                  .filter((n) => n.alive && n.location === selectedNode.id)
+                  .map((n) => n.name)
+                  .join(" · ") || "No identified animals here."}
+              </p>
+              <p>{route.reason}</p>
+              {node.id !== selectedNode.id && (
+                <button
+                  className="button primary"
+                  disabled={busy || !route.allowed}
+                  onClick={() => {
+                    onTravel(selectedNode.id);
+                    setFocus(null);
+                    navigate("life");
+                  }}
+                >
+                  {route.escorted ? "Follow family" : "Travel here"} ·{" "}
+                  {route.phases} phase{route.phases === 1 ? "" : "s"} ·{" "}
+                  {route.energy} energy + normal needs
+                </button>
+              )}
+            </div>
+          ) : focus === "result" ? (
+            <>
+              <p>
+                {eventText(
+                  latest ?? "A new life is beginning.",
+                  game.narration,
+                )}
+              </p>
+              {area.outcome && (
+                <>
+                  <p>
+                    {area.outcome.phases} simulated phase
+                    {area.outcome.phases === 1 ? "" : "s"}.
+                  </p>
+                  <ul>
+                    {area.outcome.changes.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          ) : focus === "discovery" ? (
+            <>
+              <p>Field notes are optional. Reading does not advance time.</p>
+              {discoveries(game).map((d) => (
+                <details
+                  key={d.topic}
+                  onToggle={(e) => {
+                    if (
+                      e.currentTarget.open &&
+                      !a.biology!.skills[`note:${d.topic}`]
+                    ) {
+                      const next = structuredClone(game);
+                      next.family[a.id].biology!.skills[`note:${d.topic}`] = 1;
+                      onChange(next);
+                    }
+                  }}
+                >
+                  <summary>
+                    {d.topic}
+                    {a.biology!.skills[`note:${d.topic}`] ? " · read" : ""}
+                  </summary>
+                  <p>{eventText(d.fact, game.narration)}</p>
+                </details>
+              ))}
+              <a href={sp.source} target="_blank" rel="noreferrer">
+                Species reference ↗
+              </a>
+            </>
+          ) : (
+            <>
+              <p>{field.introduction}</p>
+              <p>{field.profile.clue}</p>
+              <div className="field-resource-grid">
+                {field.stocks.map((r) => (
+                  <div key={r.key}>
+                    <span>{r.label}</span>
+                    <meter
+                      min={0}
+                      max={100}
+                      value={r.value}
+                      aria-label={r.label}
+                    />
+                    <b>
+                      {r.key === "contamination"
+                        ? r.value > 60
+                          ? "Needs attention"
+                          : "Managed"
+                        : r.value > 60
+                          ? "Good"
+                          : r.value > 25
+                            ? "Some remaining"
+                            : "Low"}
+                    </b>
+                  </div>
+                ))}
+              </div>
+              {a.speciesId === "elephant" && (
+                <p>
+                  {field.memory.length} places remembered with older relatives.
+                </p>
+              )}
+              {speciesAchievements(a).map((name) => (
+                <p className="field-earned" key={name}>
+                  ✓ {name} — recorded for this lifetime
+                </p>
+              ))}
+              <div className="rpg-choices">
+                {sceneChoices(
+                  game,
+                  availableActions(game),
+                  focus === "family"
+                    ? "family"
+                    : focus === "resource"
+                      ? "resource"
+                      : "animal",
+                )
+                  .slice(0, 4)
+                  .map((o) => choice(interactionText(game, o)))}
+              </div>
+              {field.immobile && (
+                <p>
+                  Your body is still developing. Inspecting the nursery is
+                  observation; you cannot do a worker's job yet.
+                </p>
+              )}
+              {field.moment && (
+                <button
+                  className="button primary"
+                  onClick={() => {
+                    setFocus(null);
+                    onOpportunity();
+                  }}
+                >
+                  Watch the next important moment
+                </button>
+              )}
+              <button
+                className="field-discovery"
+                onClick={() => setFocus("discovery")}
+              >
+                Open optional field notes ↗
+              </button>
+            </>
+          )}
+        </FieldDialog>
+      )}
       <nav className="rpg-nav" aria-label="Gameplay navigation">
         {tabs.map((t, i) => (
           <button

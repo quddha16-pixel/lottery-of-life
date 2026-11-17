@@ -1,3 +1,4 @@
+import { ADVENTURES } from "../data/adventures";
 import { snapshot, recordOutcome, urgentNeed } from "./outcomes";
 import { SPECIES, STARTERS, speciesById } from "../data/species";
 import { generateBirthContext } from "./history";
@@ -275,6 +276,7 @@ export function startLife(
   s.world = createWorld(s);
   s.area = undefined;
   ensureArea(s);
+  animal.biology!.skills["visit:home"] = 1;
   refreshResources(s);
   log(
     s,
@@ -497,7 +499,13 @@ function birthOffspring(s: GameState) {
 export function act(state: GameState, action: Action): GameState {
   const before = snapshot(state);
   const next = resolvePhase(copy(state), action);
-  return recordOutcome(next, before, actionTitle(state, action), next.journal.at(-1)?.text ?? "A phase passes.", 1);
+  return recordOutcome(
+    next,
+    before,
+    actionTitle(state, action),
+    next.journal.at(-1)?.text ?? "A phase passes.",
+    1,
+  );
 }
 function resolvePhase(
   state: GameState,
@@ -571,7 +579,7 @@ function resolvePhase(
       break;
     case "feed": {
       if (dependent) {
-        const caregiver = nearby(s).find(n => n.role === "mother");
+        const caregiver = nearby(s).find((n) => n.role === "mother");
         if (caregiver) {
           caregiver.hunger = clamp(caregiver.hunger + 9);
           caregiver.energy = clamp(caregiver.energy - 7);
@@ -704,7 +712,18 @@ function resolvePhase(
       stats.hydration += 5;
     }
   }
-  if (journey) s.world!.activePatch = journey.destination;
+  if (journey) {
+    const skills = a.biology!.skills;
+    if (!Object.keys(skills).some((k) => k.startsWith("visit:")))
+      skills["map:legacy"] = 1;
+    s.world!.activePatch = journey.destination;
+    if (!skills[`visit:${journey.destination}`]) {
+      skills[`visit:${journey.destination}`] = 1;
+      a.experience!.habitatKnowledge = clamp(
+        a.experience!.habitatKnowledge + 1,
+      );
+    }
+  }
   applyWorldAction(s, action, !!journey);
   for (const message of tickAnimals(s)) log(s, message, "milestone");
   if (stats.hunger > 75) stats.health -= (stats.hunger - 70) / 9;
@@ -837,7 +856,8 @@ export function routineAction(
     actions = availableActions(s),
     stats = a.stats;
   const world = s.world;
-  if (stageOf(a).dependent && stats.hydration < 55 && actions.includes("feed")) return "feed";
+  if (stageOf(a).dependent && stats.hydration < 55 && actions.includes("feed"))
+    return "feed";
   if (stats.hydration < 35 && actions.includes("drink")) return "drink";
   if (stats.energy < 30) return "rest";
   const biology = a.biology!;
@@ -943,7 +963,8 @@ export function advanceDays(
 ): { state: GameState; phases: number; interrupted: boolean } {
   if (!Number.isInteger(days) || days < 1 || days > 365)
     throw new Error("Skip must be 1–365 days");
-  if (!current(state)?.alive) return {state:copy(state), phases:0, interrupted:false};
+  if (!current(state)?.alive)
+    return { state: copy(state), phases: 0, interrupted: false };
   const beforeState = snapshot(state);
   let s = copy(state);
   let phases = 0;
@@ -962,7 +983,13 @@ export function advanceDays(
       break;
     }
   }
-  recordOutcome(s, beforeState, "Time advance", s.journal.at(-1)?.text ?? "Life continues.", phases);
+  recordOutcome(
+    s,
+    beforeState,
+    "Time advance",
+    s.journal.at(-1)?.text ?? "Life continues.",
+    phases,
+  );
   return { state: s, phases, interrupted };
 }
 export function continueBloodline(
@@ -1068,8 +1095,58 @@ export function advancePaced(state: GameState): {
       break;
     }
   }
-  recordOutcome(s, beforeState, "Life unfolds", s.area?.feedback ?? s.journal.at(-1)?.text ?? "Life continues.", phases);
+  recordOutcome(
+    s,
+    beforeState,
+    "Life unfolds",
+    s.area?.feedback ?? s.journal.at(-1)?.text ?? "Life continues.",
+    phases,
+  );
   return { state: s, phases, interrupted };
+}
+
+/** Observe a routine developmental interval; every phase still resolves needs and mortality. */
+export function advanceToOpportunity(state: GameState): {
+  state: GameState;
+  phases: number;
+  interrupted: boolean;
+} {
+  if (!current(state)?.alive)
+    return { state: copy(state), phases: 0, interrupted: false };
+  const a = current(state)!,
+    next = ADVENTURES[a.speciesId].moments.find(([day]) => day > a.ageDays);
+  if (!next) return advancePaced(state);
+  if (
+    state.area?.encounter?.status === "active" &&
+    state.area.encounter.kind !== "companion"
+  )
+    return { state: copy(state), phases: 0, interrupted: true };
+  const before = snapshot(state);
+  let s = copy(state),
+    phases = 0,
+    previousNeed = urgentNeed(s);
+  const target = Math.min(1460, (next[0] - a.ageDays) * 4 - state.phase);
+  while (phases < target && current(s)!.alive) {
+    const health = current(s)!.stats.health;
+    s = resolvePhase(s, routineAction(s));
+    phases++;
+    const need = urgentNeed(s);
+    const encounter = s.area?.encounter;
+    if (
+      !current(s)!.alive ||
+      (need && need !== previousNeed) ||
+      health - current(s)!.stats.health > 12 ||
+      (encounter?.status === "active" && encounter.kind !== "companion")
+    )
+      break;
+    previousNeed = need;
+  }
+  const reached = current(s)!.ageDays >= next[0];
+  const summary = reached
+    ? `${next[1]}. New choices may now be available. ${s.journal.at(-1)?.text ?? ""}`
+    : (urgentNeed(s) ?? s.journal.at(-1)?.text ?? "Routine care continues.");
+  recordOutcome(s, before, "Next important moment", summary, phases);
+  return { state: s, phases, interrupted: phases < target };
 }
 
 /** Contextual commands all pass through the existing phase/mortality resolver. */
@@ -1106,11 +1183,21 @@ export function interact(
               ),
           )?.text
         : undefined;
-    const feedback = result ? `${text} ${result}` : text;
+    const feedback = result
+      ? option.id === "cut-leaves" || option.id.startsWith("biology:")
+        ? `${text} ${result}`
+        : `${result} ${text}`
+      : text;
     next.area!.feedback = feedback;
     log(next, feedback);
   } else next.area!.feedback = next.journal.at(-1)?.text;
-  return recordOutcome(next, beforeState, option.title, next.area!.feedback ?? "A phase passes.", 1);
+  return recordOutcome(
+    next,
+    beforeState,
+    option.title,
+    next.area!.feedback ?? "A phase passes.",
+    1,
+  );
 }
 export function travel(state: GameState, destination: string): GameState {
   const beforeState = snapshot(state);
@@ -1149,7 +1236,13 @@ export function travel(state: GameState, destination: string): GameState {
     s.area!.feedback = text;
     log(s, text);
   }
-  return recordOutcome(s, beforeState, "Travel", s.area!.feedback ?? "The journey ends.", route.phases);
+  return recordOutcome(
+    s,
+    beforeState,
+    "Travel",
+    s.area!.feedback ?? "The journey ends.",
+    route.phases,
+  );
 }
 export function respondToEncounter(
   state: GameState,

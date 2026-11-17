@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Icon, Photo, Tag, SectionTitle } from "./components/UI";
 import { BirthSequence } from "./components/BirthSequence";
-import { GameplayScreen } from "./components/GameplayScreen";
+const GameplayScreen = lazy(() => import("./components/GameplayScreen").then(m => ({default:m.GameplayScreen})));
 import { SPECIES, speciesById } from "./data/species";
 import {
   PACK,
@@ -12,6 +12,7 @@ import {
   meetAnimal,
   advanceDays,
   advancePaced,
+  advanceToOpportunity,
   continueBloodline,
   createGame,
   current,
@@ -36,7 +37,7 @@ import "./App.css";
 const BRAND = {
   title: "Lottery of Life",
   subtitle: "A natural history of you",
-  edition: "Field edition · Phase 03",
+  edition: "Living worlds · 13 animal perspectives",
 };
 type Screen =
   | "menu"
@@ -283,17 +284,33 @@ function App() {
     );
   if (screen === "life" && a?.alive)
     return (
+      <Suspense fallback={<main className="habitat-loading" role="status">Your habitat is coming into view…</main>}>
       <GameplayScreen
         game={game}
         saveStatus={saveStatus}
         busy={busy}
         notice={notice}
         onDismiss={() => setNotice("")}
-        onInteract={(id) => attempt(() => update(interact(game, id)))}
-        onTravel={(id) => attempt(() => update(travel(game, id)))}
-        onRespond={(id) => attempt(() => update(respondToEncounter(game, id)))}
+        onInteract={(id) => {
+          setNotice("");
+          attempt(() => update(interact(game, id)));
+        }}
+        onTravel={(id) => {
+          setNotice("");
+          attempt(() => update(travel(game, id)));
+        }}
+        onRespond={(id) => {
+          setNotice("");
+          attempt(() => update(respondToEncounter(game, id)));
+        }}
         onMeet={(id) => attempt(() => update(meetAnimal(game, id)))}
         onSkip={doSkip}
+        onOpportunity={() =>
+          attempt(() => {
+            setNotice("");
+            update(advanceToOpportunity(game).state);
+          })
+        }
         onPaced={() =>
           attempt(() => {
             const result = advancePaced(game);
@@ -314,6 +331,7 @@ function App() {
           navigate("menu");
         }}
       />
+      </Suspense>
     );
   return (
     <div className="app-shell">
