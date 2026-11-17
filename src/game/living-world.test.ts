@@ -279,8 +279,11 @@ describe("development, personality, pacing and migration", () => {
     const old = JSON.parse(serialize(original));
     old.version = 1;
     delete old.world;
+    delete old.area;
+    delete old.narration;
     delete old.pacing;
     for (const a of Object.values(old.family) as Record<string, unknown>[]) {
+      delete a.biology;
       delete a.personality;
       delete a.experience;
       delete a.circumstances;
@@ -296,7 +299,7 @@ describe("development, personality, pacing and migration", () => {
     delete old.environment.history;
     delete old.environment.careQuality;
     const loaded = deserialize(JSON.stringify(old));
-    expect(loaded.version).toBe(2);
+    expect(loaded.version).toBe(3);
     expect(loaded.coins).toBe(124);
     expect(loaded.unlocked).toContain("fox");
     expect(loaded.date).toEqual(old.date);
@@ -365,6 +368,6 @@ it("seasonal species use broad birth windows instead of producing winter worker 
 it("receiving nursery food does not count as an adult worker contributing to the colony", () => {
   let s = born("ant", "nursery-contribution");
   for (let phase = 0; phase < 12 && current(s)!.alive; phase++)
-    s = act(s, "feed");
+    s = act(s, "wait");
   expect(current(s)!.colonyService).toBe(0);
 });

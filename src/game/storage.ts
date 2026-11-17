@@ -3,6 +3,8 @@ import { SPECIES, STARTERS } from "../data/species";
 import { contextAt } from "./history";
 import { createWorld, ensureIndividualExperience } from "./world";
 import { daysInYear } from "./calendar";
+import { ensureArea } from "./wildlife";
+import { ensureBiology } from "./biology";
 import type { GameState } from "./types";
 const finite = z.number().finite();
 const whole = finite.int().nonnegative();
@@ -31,6 +33,15 @@ const stats = z.object({
 const individual = z
   .object({
     id: z.string(),
+    biology: z
+      .object({
+        model: z.literal(1),
+        stage: z.string(),
+        stores: z.record(z.string(), meter),
+        skills: z.record(z.string(), meter),
+        milestones: z.array(z.string()).max(100),
+      })
+      .optional(),
     speciesId,
     name: z.string().max(100),
     sex: z.enum(["Female", "Male"]),
@@ -67,8 +78,79 @@ const individual = z
   .refine((a) => (a.alive ? !a.death && !a.cause : !!a.death && !!a.cause));
 const schema = z
   .object({
-    version: z.union([z.literal(1), z.literal(2)]),
+    version: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    area: z
+      .object({
+        model: z.literal(1),
+        ownerId: z.string(),
+        rng: whole.max(4294967295),
+        ticks: whole,
+        nodes: z
+          .array(
+            z.object({
+              id: z.string(),
+              label: z.string(),
+              kind: z.enum(["home", "forage", "water", "shade", "boundary"]),
+              links: z.array(z.string()).max(5),
+              distance: whole.min(1).max(6),
+              exposure: finite.min(0).max(1),
+              temperatureOffset: finite.min(-20).max(20),
+              x: finite.min(0).max(100),
+              y: finite.min(0).max(100),
+            }),
+          )
+          .min(3)
+          .max(10),
+        animals: z
+          .array(
+            z.object({
+              id: z.string(),
+              name: z.string().max(100),
+              species: z.string().max(100),
+              role: z.enum([
+                "mother",
+                "companion",
+                "mate",
+                "rival",
+                "predator",
+                "prey",
+                "offspring",
+              ]),
+              familyId: z.string().optional(),
+              ageDays: whole,
+              stage: z.string(),
+              health: meter,
+              hunger: meter,
+              energy: meter,
+              injury: meter,
+              bond: meter,
+              location: z.string(),
+              priority: z.enum(["feed", "rest", "water", "protect", "roam"]),
+              alive: z.boolean(),
+              reproductive: z.boolean(),
+              offspring: whole,
+              lastBirthDay: whole,
+              engagedUntil: whole.optional(),
+            }),
+          )
+          .max(200),
+        encounter: z
+          .object({
+            id: z.string(),
+            animalId: z.string(),
+            kind: z.enum(["predator", "prey", "rival", "companion", "mate"]),
+            location: z.string(),
+            beganDay: whole,
+            cooldownUntil: whole,
+            status: z.enum(["active", "resolved"]),
+            outcome: z.string().optional(),
+          })
+          .optional(),
+        feedback: z.string().optional(),
+      })
+      .optional(),
     pacing: z.enum(["immersive", "balanced", "story"]).default("immersive"),
+    narration: z.enum(["simple", "detailed"]).default("simple"),
     world: z
       .object({
         model: z.literal(1),
@@ -215,6 +297,35 @@ const schema = z
       fail("Invalid unlocked collection");
     if (s.currentId && (!s.family[s.currentId] || !s.environment))
       fail("Active life is incomplete");
+    if (s.area) {
+      const ids = new Set(s.area.nodes.map((n) => n.id));
+      if (
+        s.area.ownerId !== s.currentId ||
+        ids.size !== s.area.nodes.length ||
+        !s.world ||
+        !ids.has(s.world.activePatch) ||
+        s.area.nodes.some(
+          (n) =>
+            n.links.some((id) => !ids.has(id)) ||
+            !s.world!.patches.some((p) => p.id === n.id),
+        )
+      )
+        fail("Invalid local map");
+      if (
+        new Set(s.area.animals.map((n) => n.id)).size !==
+          s.area.animals.length ||
+        s.area.animals.some(
+          (n) => !ids.has(n.location) || (n.familyId && !s.family[n.familyId]),
+        )
+      )
+        fail("Invalid nearby animals");
+      if (
+        s.area.encounter &&
+        (!ids.has(s.area.encounter.location) ||
+          !s.area.animals.some((n) => n.id === s.area!.encounter!.animalId))
+      )
+        fail("Invalid encounter");
+    }
     for (const [id, a] of Object.entries(s.family)) {
       if (id !== a.id || !s.unlocked.includes(a.speciesId))
         fail("Invalid individual identity");
@@ -252,10 +363,11 @@ export function deserialize(text: string): GameState {
   const result = schema.safeParse(JSON.parse(text));
   if (!result.success)
     throw new Error(
-      "Save is damaged or from an unsupported version. Version 1 or 2 saves are required.",
+      "Save is damaged or from an unsupported version. Version 1, 2 or 3 saves are required.",
     );
-  const migrated: GameState = { ...result.data, version: 2 };
+  const migrated: GameState = { ...result.data, version: 3 };
   for (const a of Object.values(migrated.family)) ensureIndividualExperience(a);
+  ensureBiology(migrated);
   if (migrated.currentId && migrated.environment) {
     const location = migrated.environment.location;
     const species = SPECIES.find(
@@ -272,6 +384,7 @@ export function deserialize(text: string): GameState {
     migrated.environment.careQuality ??= 0.85;
     migrated.environment.scenarioId = "continuous";
     migrated.world ??= createWorld(migrated);
+    ensureArea(migrated);
   }
   return migrated;
 }

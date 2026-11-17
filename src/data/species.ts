@@ -1,3 +1,4 @@
+import { SPECIES_RULES } from "./species-rules";
 import { HISTORIES } from "./history";
 import type { Species, Location, Stage } from "../game/types";
 const loc = (
@@ -284,8 +285,8 @@ export const SPECIES: Species[] = [
     ],
     lifespan: 1095,
     maxLifespan: 9855,
-    stages: [stage("Duckling", 0), stage("Fledgling", 60), stage("Adult", 300)],
-    adultDay: 300,
+    stages: [stage("Duckling", 0), stage("Fledgling", 60), stage("Adult", 365)],
+    adultDay: 365,
     diet: "Aquatic plants, seeds and invertebrates",
     feeding:
       "Precocial ducklings feed themselves while following their mother.",
@@ -434,9 +435,9 @@ export const SPECIES: Species[] = [
       stage("Egg", 0, true),
       stage("Tadpole", 5),
       stage("Froglet", 365),
-      stage("Adult", 730),
+      stage("Adult", 1095),
     ],
-    adultDay: 730,
+    adultDay: 1095,
     diet: "Tadpoles: algae and detritus; adults: small animals",
     feeding:
       "A long aquatic larval stage precedes predatory adult ambush feeding.",
@@ -637,6 +638,7 @@ export const SPECIES: Species[] = [
     heat: 26,
   },
 ];
+for (const sp of SPECIES) sp.source = SPECIES_RULES[sp.id].source;
 export const speciesById = (id: string): Species => {
   const species = SPECIES.find((s) => s.id === id);
   if (!species) throw new Error(`Unknown species: ${id}`);

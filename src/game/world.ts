@@ -1,6 +1,7 @@
 import { daysInYear } from "./calendar";
 import { contextAt } from "./history";
 import { random, seedFromText } from "./random";
+import { foodWeb } from "./biology";
 import { speciesById } from "../data/species";
 import type {
   Action,
@@ -70,10 +71,11 @@ export function refreshResources(s: GameState): void {
     env = s.environment,
     sp = speciesById(animal(s).speciesId);
   const patch = w.patches.find((p) => p.id === w.activePatch)!;
+  const trophic = foodWeb(s);
   const resource =
-    sp.history.trophic === "plant" || sp.history.trophic === "fungus"
+    trophic === "plant" || trophic === "fungus"
       ? w.vegetation
-      : sp.history.trophic === "predator" || sp.history.trophic === "plankton"
+      : trophic === "predator" || trophic === "plankton"
         ? w.prey
         : (w.vegetation + w.prey) / 2;
   env.food = unit(
@@ -254,7 +256,11 @@ export function tickWorld(s: GameState): string[] {
   }
   return messages;
 }
-export function applyWorldAction(s: GameState, action: Action): void {
+export function applyWorldAction(
+  s: GameState,
+  action: Action,
+  directedTravel = false,
+): void {
   if (!s.world) return;
   const w = s.world,
     a = animal(s),
@@ -273,7 +279,7 @@ export function applyWorldAction(s: GameState, action: Action): void {
       100,
       a.experience.habitatKnowledge + 1,
     );
-  if (action === "move") {
+  if (action === "move" && !directedTravel) {
     const target = w.patches
       .filter((p) => p.id !== w.activePatch)
       .sort(

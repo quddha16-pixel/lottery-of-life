@@ -125,7 +125,7 @@ describe("phase and survival rules", () => {
     const s = birth("bumblebee");
     current(s)!.ageDays = 24;
     s.phase = 3;
-    const next = act(s, "feed");
+    const next = act(s, "wait");
     expect(stageOf(current(next)!).name).toBe("Worker");
     expect(availableActions(next)).toContain("socialize");
     expect(next.journal.some((e) => e.kind === "milestone")).toBe(true);
@@ -186,6 +186,7 @@ describe("phase and survival rules", () => {
   it("models age-related and postbreeding octopus death", () => {
     const s = mature("octopus");
     const a = current(s)!;
+    a.sex = "Female";
     a.lastReproduction = 100;
     a.ageDays = 200;
     s.phase = 3;

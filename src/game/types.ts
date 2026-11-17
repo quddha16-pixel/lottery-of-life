@@ -53,7 +53,11 @@ export interface HistoricalContext {
 export interface Situation {
   id: string;
   kind:
-    "drought" | "food-shortage" | "predator-pressure" | "flood" | "breeding";
+    | "drought"
+    | "food-shortage"
+    | "predator-pressure"
+    | "flood"
+    | "breeding";
   began: WorldDate;
   days: number;
   severity: number;
@@ -154,6 +158,7 @@ export interface Stats {
   bond: number;
 }
 export interface Individual {
+  biology?: SpeciesState;
   id: string;
   speciesId: string;
   name: string;
@@ -187,6 +192,13 @@ export interface Individual {
   independentYoung: number;
   explored: number;
   colonyService: number;
+}
+export interface SpeciesState {
+  model: 1;
+  stage: string;
+  stores: Record<string, number>;
+  skills: Record<string, number>;
+  milestones: string[];
 }
 export interface JournalEntry {
   id: number;
@@ -222,9 +234,11 @@ export interface LifeRecord {
   surviving: number;
 }
 export interface GameState {
-  version: 2;
+  version: 3;
+  area?: LocalArea;
   world?: LocalWorld;
   pacing: Pacing;
+  narration: "simple" | "detailed";
   rng: number;
   serial: number;
   coins: number;
@@ -239,4 +253,63 @@ export interface GameState {
   records: LifeRecord[];
   priority: Priority;
   lastPack?: { speciesId: string; duplicate: boolean; refund: number };
+}
+export interface LocalNode {
+  id: string;
+  label: string;
+  kind: "home" | "forage" | "water" | "shade" | "boundary";
+  links: string[];
+  distance: number;
+  exposure: number;
+  temperatureOffset: number;
+  x: number;
+  y: number;
+}
+export interface NearbyAnimal {
+  id: string;
+  name: string;
+  species: string;
+  role:
+    | "mother"
+    | "companion"
+    | "mate"
+    | "rival"
+    | "predator"
+    | "prey"
+    | "offspring";
+  familyId?: string;
+  ageDays: number;
+  stage: string;
+  health: number;
+  hunger: number;
+  energy: number;
+  injury: number;
+  bond: number;
+  location: string;
+  priority: "feed" | "rest" | "water" | "protect" | "roam";
+  alive: boolean;
+  reproductive: boolean;
+  offspring: number;
+  lastBirthDay: number;
+  engagedUntil?: number;
+}
+export interface Encounter {
+  id: string;
+  animalId: string;
+  kind: "predator" | "prey" | "rival" | "companion" | "mate";
+  location: string;
+  beganDay: number;
+  cooldownUntil: number;
+  status: "active" | "resolved";
+  outcome?: string;
+}
+export interface LocalArea {
+  model: 1;
+  ownerId: string;
+  rng: number;
+  ticks: number;
+  nodes: LocalNode[];
+  animals: NearbyAnimal[];
+  encounter?: Encounter;
+  feedback?: string;
 }

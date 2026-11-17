@@ -6,7 +6,10 @@ import { SPECIES, speciesById } from "./data/species";
 import {
   PACK,
   abandonLife,
-  act,
+  interact,
+  travel,
+  respondToEncounter,
+  meetAnimal,
   advanceDays,
   advancePaced,
   continueBloodline,
@@ -15,6 +18,7 @@ import {
   openPack,
   stageOf,
 } from "./game/engine";
+import { deathExplanation } from "./game/narration";
 import { ageLabel, formatDate } from "./game/calendar";
 import {
   BACKUP_KEY,
@@ -32,7 +36,7 @@ import "./App.css";
 const BRAND = {
   title: "Lottery of Life",
   subtitle: "A natural history of you",
-  edition: "Field edition · Phase 01",
+  edition: "Field edition · Phase 03",
 };
 type Screen =
   | "menu"
@@ -56,7 +60,7 @@ const screens: Screen[] = [
   "settings",
 ];
 const screenFromLocation = (): Screen => {
-  const value = window.location.hash.slice(1) as Screen;
+  const value = window.location.hash.slice(1).split("/")[0] as Screen;
   return screens.includes(value) ? value : "menu";
 };
 const navigation: { id: Screen; label: string; icon: string }[] = [
@@ -169,6 +173,8 @@ function App() {
     return () => window.removeEventListener("popstate", restore);
   }, []);
   function navigate(to: Screen) {
+    // Transient notices belong to the view/life that produced them. Storage warnings persist.
+    if (!saveBlocked) setNotice("");
     if (screenFromLocation() !== to)
       window.history.pushState(
         null,
@@ -270,6 +276,7 @@ function App() {
         onResume={() => navigate("life")}
         onBegin={(next) => {
           setGame(next);
+          if (!saveBlocked) setNotice("");
           navigate("life");
         }}
       />
@@ -282,7 +289,10 @@ function App() {
         busy={busy}
         notice={notice}
         onDismiss={() => setNotice("")}
-        onAction={(action) => attempt(() => update(act(game, action)))}
+        onInteract={(id) => attempt(() => update(interact(game, id)))}
+        onTravel={(id) => attempt(() => update(travel(game, id)))}
+        onRespond={(id) => attempt(() => update(respondToEncounter(game, id)))}
+        onMeet={(id) => attempt(() => update(meetAnimal(game, id)))}
         onSkip={doSkip}
         onPaced={() =>
           attempt(() => {
@@ -876,6 +886,10 @@ function App() {
                         {speciesById(record.speciesId).name}
                       </p>
                       <h2>{ageLabel(record.age)} in the living world.</h2>
+                      <p className="muted small">
+                        {deathExplanation(record.cause)} This life cannot be
+                        resumed. Its story is preserved.
+                      </p>
                       <dl className="record-details">
                         <div>
                           <dt>Born</dt>

@@ -1,6 +1,8 @@
-# Living-world foundation and continuation plan
+# Phase 2 design snapshot
 
-This review branch combines the requested birth/gameplay overhaul with a coherent first implementation of Phase 2. It is intentionally a local, aggregate simulation rather than an attempt to reconstruct every organism on Earth.
+This document records the earlier Phase 2 implementation at `79ca0bd`. Several limitations below were addressed in Phase 3 and 3B. Consult [the current scope](PHASE3.md) and [species mechanics](SPECIES_INDIVIDUALITY.md) for present behavior.
+
+That review branch combines the requested birth/gameplay overhaul with a coherent first implementation of Phase 2. It is intentionally a local, aggregate simulation rather than an attempt to reconstruct every organism on Earth.
 
 ## Implemented systems
 

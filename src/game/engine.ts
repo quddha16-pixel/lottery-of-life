@@ -9,6 +9,33 @@ import {
 } from "./world";
 import { nextDate } from "./calendar";
 import { pick, random, seedFromText } from "./random";
+import {
+  initialBiology,
+  phaseTemperature,
+  filterSpeciesActions,
+  speciesFoodFactor,
+  speciesRiskFactor,
+  speciesThermalFactor,
+  tickBiology,
+  syncDevelopment,
+  reproductionPossible,
+  preferredFeedingNode,
+  speciesAchievements,
+  type BiologyActivityId,
+} from "./biology";
+import {
+  ensureArea,
+  locationNow,
+  nearby,
+  tickAnimals,
+  careFactor,
+  interactions,
+  applyInteraction,
+  travelEligibility,
+  encounterResponses,
+  type InteractionId,
+  type ResponseId,
+} from "./wildlife";
 import type {
   Action,
   GameState,
@@ -130,8 +157,9 @@ function log(
 }
 export function createGame(seed = "lottery-of-life"): GameState {
   return {
-    version: 2,
+    version: 3,
     pacing: "balanced",
+    narration: "simple",
     rng: seedFromText(seed),
     serial: 0,
     coins: 0,
@@ -167,7 +195,7 @@ function makeIndividual(
     parent?.personality
       ? clamp(parent.personality[key] + (random(s) - 0.5) * 20)
       : 25 + random(s) * 50;
-  return {
+  const individual: Individual = {
     id: id(s),
     speciesId,
     name: pick(s, [
@@ -211,6 +239,8 @@ function makeIndividual(
     explored: 0,
     colonyService: 0,
   };
+  individual.biology = initialBiology(individual);
+  return individual;
 }
 export function startLife(
   state: GameState,
@@ -242,6 +272,8 @@ export function startLife(
   s.family[animal.id] = animal;
   s.currentId = animal.id;
   s.world = createWorld(s);
+  s.area = undefined;
+  ensureArea(s);
   refreshResources(s);
   log(
     s,
@@ -263,7 +295,7 @@ export function availableActions(s: GameState): Action[] {
     const actions: Action[] = ["feed", "rest", "shelter", "wait"];
     if (!["Egg", "Pupa"].includes(stageOf(a).name) && a.ageDays > 5)
       actions.push("learn");
-    return actions;
+    return filterSpeciesActions(s, actions);
   }
   const actions: Action[] = [
     "feed",
@@ -273,7 +305,12 @@ export function availableActions(s: GameState): Action[] {
     "explore",
     "evade",
   ];
-  if (s.world && a.stats.energy > 25 && a.stats.injury < 55)
+  if (
+    s.world &&
+    a.stats.energy > 25 &&
+    a.stats.injury < 55 &&
+    (!s.area || s.area.nodes.some((n) => travelEligibility(s, n.id).allowed))
+  )
     actions.push("move");
   if (sp.behavior?.socialAction !== false) actions.push("socialize");
   const interval = sp.behavior?.breedingInterval ?? 365;
@@ -286,7 +323,8 @@ export function availableActions(s: GameState): Action[] {
         a.ageDays - a.lastReproduction >= interval)) &&
     a.stats.health > 50 &&
     a.stats.hunger < 65 &&
-    a.stats.bond >= (sp.behavior?.minBreedingBond ?? 0)
+    a.stats.bond >= (sp.behavior?.minBreedingBond ?? 0) &&
+    reproductionPossible(s)
   )
     actions.push("mate");
   if (
@@ -296,7 +334,7 @@ export function availableActions(s: GameState): Action[] {
     )
   )
     actions.push("care");
-  return actions;
+  return filterSpeciesActions(s, actions);
 }
 export function actionTitle(s: GameState, action: Action): string {
   const a = current(s);
@@ -351,6 +389,9 @@ export function calculateRewards(
     score += 10;
     achievements.push("Habitat knowledge");
   }
+  const speciesSuccess = speciesAchievements(a);
+  achievements.push(...speciesSuccess);
+  score += speciesSuccess.length * 12;
   // Lifetime-only settlement, with a juvenile threshold, prevents birth/abandon farming.
   const coins =
     a.ageDays < Math.min(7, sp.adultDay) ? 0 : Math.floor(score * 1.5);
@@ -359,6 +400,8 @@ export function calculateRewards(
 function finish(s: GameState, cause: string, reward = true) {
   const a = current(s)!;
   if (!a.alive) return;
+  for (const key of Object.keys(a.stats) as (keyof typeof a.stats)[])
+    a.stats[key] = clamp(a.stats[key]);
   a.alive = false;
   a.death = { ...s.date };
   a.cause = cause;
@@ -431,7 +474,11 @@ function birthOffspring(s: GameState) {
   const a = current(s)!,
     sp = speciesById(a.speciesId);
   if (a.pregnantUntil === undefined || a.ageDays < a.pregnantUntil) return;
-  const count = a.pendingOffspring ?? sp.offspring;
+  let count = a.pendingOffspring ?? sp.offspring;
+  if (a.speciesId === "octopus" && a.sex === "Female")
+    count = Math.floor(count * (0.5 + (a.biology?.stores.brood ?? 0) / 200));
+  if (a.speciesId === "mallard")
+    count = Math.floor(count * (0.6 + (a.biology?.stores.nest ?? 35) / 250));
   for (let i = 0; i < count; i++) {
     const child = makeIndividual(s, a.speciesId, a);
     s.family[child.id] = child;
@@ -449,13 +496,45 @@ function birthOffspring(s: GameState) {
 export function act(state: GameState, action: Action): GameState {
   return resolvePhase(copy(state), action);
 }
-function resolvePhase(state: GameState, action: Action): GameState {
-  if (!availableActions(state).includes(action))
+function resolvePhase(
+  state: GameState,
+  action: Action,
+  journey?: { destination: string; cost: number; exposure: number },
+  activity?: BiologyActivityId,
+): GameState {
+  ensureArea(state);
+  if (action === "move" && !journey) {
+    const preferred = preferredFeedingNode(state);
+    const route = state
+      .area!.nodes.filter(
+        (n) => n.distance <= 2 && travelEligibility(state, n.id).allowed,
+      )
+      .sort(
+        (x, y) =>
+          (y.id === preferred ? 10 : 0) -
+          (x.id === preferred ? 10 : 0) +
+          state.world!.patches.find((p) => p.id === y.id)!.food -
+          state.world!.patches.find((p) => p.id === x.id)!.food,
+      )[0];
+    if (!route) throw new Error("No accessible local route.");
+    journey = {
+      destination: route.id,
+      cost: travelEligibility(state, route.id).energy,
+      exposure: route.exposure + 0.4,
+    };
+  }
+  if (
+    !availableActions(state).includes(action) &&
+    !(journey && current(state)?.alive && action === "move") &&
+    // Contextual activity eligibility was reserved before its upfront resource costs.
+    !(activity && current(state)?.alive)
+  )
     throw new Error("Action unavailable for this life stage or condition");
   const s = state,
     a = current(s)!,
     sp = speciesById(a.speciesId),
     env = s.environment!;
+  ensureArea(s);
   ensureIndividualExperience(a);
   const dependent = stageOf(a).dependent,
     stats = a.stats;
@@ -474,9 +553,9 @@ function resolvePhase(state: GameState, action: Action): GameState {
     text = "";
   switch (action) {
     case "move":
-      stats.energy -= 12;
+      stats.energy -= journey?.cost ?? 12;
       stats.stress += 3;
-      exposure = 1.2;
+      exposure = journey?.exposure ?? 1.2;
       text = "You leave the depleted patch and settle on better local ground.";
       break;
     case "learn":
@@ -486,16 +565,31 @@ function resolvePhase(state: GameState, action: Action): GameState {
         "Sensory experience accumulates around your caregivers; independence still lies ahead.";
       break;
     case "feed": {
+      const resource =
+        env.food * (dependent ? careFactor(s) : speciesFoodFactor(s));
       const success =
         random(s) <
         Math.min(
           0.98,
-          env.food +
-            (dependent
-              ? 0.05
-              : a.traits.perception / 800 +
-                (a.experience?.foraging ?? 0) / 1200) +
-            (stats.bond - 50) / 500,
+          resource <= 0.01
+            ? 0
+            : resource +
+                (a.speciesId === "wolf" && !dependent
+                  ? Math.min(
+                      0.1,
+                      nearby(s).filter(
+                        (n) =>
+                          n.species === sp.name &&
+                          ["companion", "mother"].includes(n.role) &&
+                          n.bond > 40,
+                      ).length * 0.04,
+                    )
+                  : 0) +
+                (dependent
+                  ? 0.05
+                  : a.traits.perception / 800 +
+                    (a.experience?.foraging ?? 0) / 1200) +
+                (stats.bond - 50) / 500,
         );
       exposure = dependent ? 0.04 : 1;
       stats.energy -= dependent ? 0 : 7;
@@ -515,7 +609,16 @@ function resolvePhase(state: GameState, action: Action): GameState {
       break;
     }
     case "drink":
-      stats.hydration += 40 * (s.world ? Math.max(0.1, s.world.water) : 1);
+      stats.hydration +=
+        40 *
+        (s.world
+          ? Math.max(
+              0,
+              s.world.water *
+                s.world.patches.find((p) => p.id === s.world!.activePatch)!
+                  .water,
+            )
+          : 1);
       stats.energy -= 3;
       exposure = 0.7;
       text =
@@ -571,7 +674,7 @@ function resolvePhase(state: GameState, action: Action): GameState {
         a.lastReproduction = a.ageDays;
         a.pregnantUntil = a.ageDays + sp.gestation;
         a.pendingOffspring = sp.offspring;
-        text = `A successful breeding encounter. A cohort may arrive in about ${sp.gestation} days.`;
+        text = `A successful breeding encounter. ${["bullfrog", "octopus", "mallard", "robin"].includes(a.speciesId) ? "Eggs may hatch" : "Young may be born"} in about ${sp.gestation} days${a.sex === "Male" ? "; this records your partner’s developing cohort" : ""}.`;
       } else text = "No breeding opportunity develops this phase.";
       break;
     case "care":
@@ -582,13 +685,15 @@ function resolvePhase(state: GameState, action: Action): GameState {
       break;
   }
   if (dependent && ["wait", "rest", "learn"].includes(action)) {
-    const care = (env.careQuality ?? 0.85) * env.food;
+    const care = (env.careQuality ?? 0.85) * env.food * careFactor(s);
     if (random(s) < care) {
       stats.hunger -= 10;
       stats.hydration += 5;
     }
   }
-  applyWorldAction(s, action);
+  if (journey) s.world!.activePatch = journey.destination;
+  applyWorldAction(s, action, !!journey);
+  for (const message of tickAnimals(s)) log(s, message, "milestone");
   if (stats.hunger > 75) stats.health -= (stats.hunger - 70) / 9;
   if (stats.hydration < 25) stats.health -= (30 - stats.hydration) / 6;
   if (stats.energy < 15) {
@@ -596,21 +701,27 @@ function resolvePhase(state: GameState, action: Action): GameState {
     stats.stress += 6;
   }
   stats.health -= stats.injury / 60;
+  const localTemperature = phaseTemperature(s);
   const thermal = Math.max(
     0,
-    sp.cold - env.temperature,
-    env.temperature - sp.heat,
+    sp.cold - localTemperature,
+    localTemperature - sp.heat,
   );
-  stats.health -= thermal * (action === "shelter" || dependent ? 0.1 : 0.5);
+  stats.health -=
+    thermal *
+    (action === "shelter" || dependent ? 0.1 : 0.5) *
+    speciesThermalFactor(s);
   if (stats.hunger < 55 && stats.hydration > 35 && stats.energy > 35)
     stats.health += 0.5;
   const risk =
     (sp.risk *
+      speciesRiskFactor(s) *
+      (1 + nearby(s).filter((n) => n.role === "predator").length * 0.4) *
       (s.world ? 0.5 + s.world.predators * 2 : 1) *
       (1 - (a.personality?.caution ?? 50) / 400) *
       (dependent
         ? Math.max(exposure, 0.2 + Math.max(0, 0.7 - env.food) * 0.8)
-        : exposure) *
+        : exposure * (0.4 + locationNow(s).exposure)) *
       (dependent ? 1.7 : 1) *
       (1 + env.pressure + stats.stress / 100 + stats.injury / 80)) /
     4;
@@ -647,6 +758,8 @@ function resolvePhase(state: GameState, action: Action): GameState {
     stats[key] = clamp(stats[key]);
   if (s.journal.at(-1)?.text !== text)
     log(s, text, emergency ? "danger" : "routine");
+  for (const message of tickBiology(s, action, activity))
+    log(s, message, "milestone");
   if (stats.health <= 0) {
     finish(
       s,
@@ -658,7 +771,13 @@ function resolvePhase(state: GameState, action: Action): GameState {
             ? "Exposure"
             : stats.injury > 40
               ? "Injury"
-              : "Declining condition",
+              : a.speciesId === "bullfrog" &&
+                  a.ageDays < 365 &&
+                  s.world!.water < 0.2
+                ? "Pond drying"
+                : a.speciesId === "ant" && a.biology!.stores.fungus < 15
+                  ? "Fungal garden failure"
+                  : "Declining condition",
     );
     return s;
   }
@@ -668,6 +787,7 @@ function resolvePhase(state: GameState, action: Action): GameState {
     s.phase = 0;
     s.date = nextDate(s.date);
     a.ageDays++;
+    for (const message of syncDevelopment(s)) log(s, message, "milestone");
     stats.bond = clamp(stats.bond - 0.5);
     updateWorld(s);
     offspringDaily(s);
@@ -688,7 +808,8 @@ function resolvePhase(state: GameState, action: Action): GameState {
     if (
       sp.behavior?.terminalBreeding &&
       a.lastReproduction !== undefined &&
-      a.ageDays > a.lastReproduction + sp.gestation + 7
+      a.ageDays >
+        a.lastReproduction + sp.gestation + (a.sex === "Female" ? 7 : 75)
     )
       finish(s, "Postbreeding senescence");
   }
@@ -704,6 +825,48 @@ export function routineAction(
     stats = a.stats;
   const world = s.world;
   if (stats.energy < 30) return "rest";
+  const biology = a.biology!;
+  if (a.speciesId === "ant" && !stageOf(a).dependent) {
+    if (
+      world?.activePatch === "forage" &&
+      biology.stores.substrate < 30 &&
+      actions.includes("feed")
+    )
+      return "feed";
+    if (
+      biology.stores.substrate < 5 &&
+      world?.activePatch !== "forage" &&
+      actions.includes("move")
+    )
+      return "move";
+    if (
+      biology.stores.fungus < 45 &&
+      biology.stores.substrate > 0 &&
+      ["home", "shade"].includes(world!.activePatch) &&
+      actions.includes("socialize")
+    )
+      return "socialize";
+  }
+  if (a.speciesId === "bumblebee" && !stageOf(a).dependent) {
+    if (
+      biology.stores.pollen >= 10 &&
+      ["home", "shade"].includes(world!.activePatch) &&
+      actions.includes("socialize")
+    )
+      return "socialize";
+    if (
+      biology.stores.pollen > 25 &&
+      !["home", "shade"].includes(world!.activePatch) &&
+      actions.includes("move")
+    )
+      return "move";
+  }
+  if (
+    !actions.includes("feed") &&
+    stats.hunger > 35 &&
+    actions.includes("move")
+  )
+    return "move";
   if (
     world &&
     world.predators > 0.6 &&
@@ -728,7 +891,7 @@ export function routineAction(
     return "shelter";
   if (stats.hydration < 40 && actions.includes("drink")) return "drink";
   if (stats.hunger > 35 || (sp.water !== "fresh" && stats.hydration < 55))
-    return "feed";
+    if (actions.includes("feed")) return "feed";
   if (stats.energy < 45) return "rest";
   if (stats.injury > 15 || stats.health < 45) return "shelter";
   if (priority === "reproduction" && actions.includes("mate")) return "mate";
@@ -744,7 +907,8 @@ export function routineAction(
     stats.energy > 65
   )
     return "explore";
-  if (priority === "feeding" && stats.hunger > 20) return "feed";
+  if (priority === "feeding" && stats.hunger > 20 && actions.includes("feed"))
+    return "feed";
   return "rest";
 }
 export function skipOptions(s: GameState): number[] {
@@ -798,6 +962,14 @@ export function continueBloodline(
     throw new Error("No eligible surviving offspring");
   const s = copy(state);
   s.currentId = childId;
+  if (s.area) {
+    s.area.ownerId = childId;
+    s.area.animals = s.area.animals.filter((n) => n.familyId !== childId);
+    s.area.animals.forEach((n) => {
+      if (n.role === "mother") n.role = "companion";
+    });
+  }
+  ensureArea(s);
   log(
     s,
     `You continue as ${child.name}, generation ${child.generation}, at their actual age of ${child.ageDays} days. The world has not reset.`,
@@ -832,6 +1004,11 @@ export function advancePaced(state: GameState): {
 } {
   if (!current(state)?.alive)
     return { state: copy(state), phases: 0, interrupted: false };
+  if (
+    state.area?.encounter?.status === "active" &&
+    ["predator", "rival", "prey", "mate"].includes(state.area.encounter.kind)
+  )
+    return { state: copy(state), phases: 0, interrupted: true };
   if (state.pacing === "immersive") {
     const next = act(state, routineAction(state));
     return { state: next, phases: 1, interrupted: !current(next)?.alive };
@@ -859,6 +1036,10 @@ export function advancePaced(state: GameState): {
         .join(",") !== initialSituations;
     if (
       !current(s)!.alive ||
+      (s.area?.encounter?.status === "active" &&
+        ["predator", "rival", "prey", "mate"].includes(
+          s.area.encounter.kind,
+        )) ||
       current(s)!.stats.health < 30 ||
       health - current(s)!.stats.health > 12 ||
       changed
@@ -868,4 +1049,177 @@ export function advancePaced(state: GameState): {
     }
   }
   return { state: s, phases, interrupted };
+}
+
+/** Contextual commands all pass through the existing phase/mortality resolver. */
+export function interact(
+  state: GameState,
+  interactionId: InteractionId,
+): GameState {
+  const s = copy(state);
+  ensureArea(s);
+  const option = interactions(s, availableActions(s)).find(
+    (x) => x.id === interactionId,
+  );
+  if (!option) throw new Error("That interaction is no longer possible here.");
+  if (option.id === "follow-group") return travel(s, option.target!);
+  const text = applyInteraction(s, option);
+  const beforeSerial = s.serial;
+  const next = resolvePhase(
+    s,
+    option.action,
+    undefined,
+    option.id.startsWith("biology:")
+      ? (option.id.slice(8) as BiologyActivityId)
+      : undefined,
+  );
+  if (current(next)?.alive && text) {
+    const result =
+      option.action === "feed"
+        ? next.journal.findLast(
+            (j) =>
+              j.id > beforeSerial &&
+              /successful feeding|search yields|nursery provides|Provisioning is scarce/.test(
+                j.text,
+              ),
+          )?.text
+        : undefined;
+    const feedback = result ? `${result} ${text}` : text;
+    next.area!.feedback = feedback;
+    log(next, feedback);
+  } else next.area!.feedback = next.journal.at(-1)?.text;
+  return next;
+}
+export function travel(state: GameState, destination: string): GameState {
+  let s = copy(state);
+  ensureArea(s);
+  const route = travelEligibility(s, destination);
+  if (!route.allowed) throw new Error(route.reason);
+  const node = s.area!.nodes.find((n) => n.id === destination)!;
+  const escorts = route.escorted
+    ? s.area!.animals.filter(
+        (n) =>
+          n.alive &&
+          ["mother", "companion"].includes(n.role) &&
+          n.location === s.world!.activePatch,
+      )
+    : [];
+  for (let step = 0; step < route.phases && current(s)?.alive; step++) {
+    const target =
+      step === route.phases - 1 ? destination : s.world!.activePatch;
+    s = resolvePhase(s, "move", {
+      destination: target,
+      cost: route.energy / route.phases,
+      exposure: route.escorted ? node.exposure * 0.6 : node.exposure + 0.4,
+    });
+    // Resolve each leg: death can stop a journey before arrival.
+  }
+  if (current(s)?.alive) {
+    for (const escort of escorts) {
+      const live = s.area!.animals.find((n) => n.id === escort.id)!;
+      if (live.alive) {
+        live.location = destination;
+        live.energy = clamp(live.energy - route.energy * 0.5);
+      }
+    }
+    const text = `${route.escorted ? "With your caregiver, you reach" : "You reach"} ${node.label.toLowerCase()} after ${route.phases} phase${route.phases === 1 ? "" : "s"}. Travel used ${route.energy} energy plus ordinary metabolism. Food, cover and water now depend on this location.`;
+    s.area!.feedback = text;
+    log(s, text);
+  }
+  return s;
+}
+export function respondToEncounter(
+  state: GameState,
+  response: ResponseId,
+): GameState {
+  const s = copy(state);
+  ensureArea(s);
+  const e = s.area!.encounter,
+    option = encounterResponses(s).find((x) => x.id === response);
+  if (!e || !option) throw new Error("That encounter response is unavailable.");
+  const other = s.area!.animals.find((n) => n.id === e.animalId)!;
+  if (!other.alive || other.location !== s.world!.activePatch)
+    throw new Error("The other animal has moved on.");
+  let text =
+    "You keep your distance and learn from the encounter. A feeding opportunity passes.";
+  if (response === "challenge") {
+    const damage = 10 + random(s) * 30;
+    current(s)!.stats.injury += damage;
+    current(s)!.stats.health -= damage * 0.7;
+    current(s)!.stats.energy -= 8;
+    other.injury = clamp(other.injury + 15);
+    other.bond = 0;
+    text =
+      "Standing your ground leads to conflict. Injury persists after the rival withdraws.";
+  }
+  if (response === "retreat") {
+    current(s)!.stats.energy -= 4;
+    text =
+      "You withdraw into cover, spending energy and giving up this opportunity.";
+  }
+  if (response === "approach") {
+    other.bond = clamp(other.bond + 10);
+    text = `A quiet approach builds trust with ${other.name}.`;
+  }
+  const beforeSerial = s.serial;
+  const next = resolvePhase(s, option.action);
+  if (response === "court") {
+    other.bond = clamp(other.bond + 5);
+    text =
+      next.journal.findLast(
+        (j) => j.id > beforeSerial && j.text.includes("breeding"),
+      )?.text ?? "The encounter ends without breeding.";
+  }
+  if (response === "hunt") {
+    const ate = next.journal.some(
+      (j) => j.id > beforeSerial && j.text.includes("successful feeding"),
+    );
+    if (ate) {
+      other.alive = false;
+      other.health = 0;
+      text =
+        "The hunt succeeds. This individual prey dies; the meal and local depletion persist.";
+    } else {
+      text =
+        "The prey escapes. The failed hunt costs energy and the animal remains nearby.";
+      other.energy = clamp(other.energy - 20);
+    }
+  }
+  // Re-find entities in returned state: never mutate references to a previous snapshot.
+  if (response === "hunt")
+    Object.assign(next.area!.animals.find((n) => n.id === other.id)!, other);
+  next.area!.encounter = {
+    ...e,
+    status: "resolved",
+    outcome: text,
+    cooldownUntil: next.area!.ticks + 8,
+  };
+  next.area!.feedback = text;
+  if (current(next)?.alive)
+    log(next, text, response === "challenge" ? "danger" : "routine");
+  return next;
+}
+export function meetAnimal(state: GameState, animalId: string): GameState {
+  const s = copy(state);
+  ensureArea(s);
+  const n = s.area!.animals.find((x) => x.id === animalId);
+  if (!current(s)?.alive || !n?.alive || n.location !== s.world!.activePatch)
+    throw new Error("That animal is not nearby.");
+  if (
+    s.area!.encounter?.status === "active" &&
+    ["predator", "rival"].includes(s.area!.encounter.kind)
+  )
+    throw new Error("Respond to the current encounter first.");
+  s.area!.encounter = {
+    id: `meet:${n.id}:${s.area!.ticks}`,
+    animalId: n.id,
+    kind: ["mother", "offspring"].includes(n.role)
+      ? "companion"
+      : (n.role as "companion" | "mate" | "prey" | "predator" | "rival"),
+    location: n.location,
+    beganDay: s.area!.ticks,
+    cooldownUntil: s.area!.ticks + 8,
+    status: "active",
+  };
+  return s;
 }

@@ -2,7 +2,7 @@
 
 A day-by-day animal survival game in `quddha16-pixel/lottery-of-life`, separate from Identifier Q and Soccer Pocket GM.
 
-This branch, **`development/living-world-overhaul`**, contains the birth/gameplay redesign and a first coherent local-world implementation of Phase 2. It is for review: **do not merge or deploy without explicit approval**. The existing Pages workflow triggers automatically only from `development/phase-1-foundation`; pushing this branch runs CI without publishing it.
+This branch, **`development/phase-3-wildlife-rpg`**, contains the shared Phase 3 wildlife RPG framework and mechanics for all 13 existing species, including the family-friendly presentation requirements. It is for review: **do not merge or deploy without explicit approval**. The existing Pages workflow triggers automatically only from `development/phase-1-foundation`; pushing this branch runs CI without publishing it.
 
 ## Run
 
@@ -20,13 +20,15 @@ Open the printed URL with `/lottery-of-life/`. No account, keys, backend, paid s
 - A dedicated main menu with New Life, Continue Life, collection, packs, bloodlines, lifetime records and creator credit.
 - A four-stage reveal of species, geography, date and circumstances; choose Begin Life to commit the generated individual.
 - Seeded continuous birth-year sampling across each species' supported historical window, including BCE and Late Pleistocene periods. Compatible historical habitats replace modern-location assumptions. [Scope and uncertainty](docs/HISTORICAL_MODEL.md).
-- An immersive gameplay screen with animal identity, date, phase, survival indicators, contextual situation and action consequences, plus expandable journal, relationships, family and time controls.
+- An illustrated, mobile-first active life with contextual decisions and dedicated Life / Explore / Social / Journal / More navigation. Connected locations, escorted travel, persistent nearby animals and focused encounters.
+- Distinct biological resource loops and capabilities across all 10 starters and 3 unlockable species. [Species mechanics and reference assumptions](docs/SPECIES_INDIVIDUALITY.md).
+- Saved Simple / Detailed narration, optional sourced discoveries, respectful permanent mortality and earned-currency-only progression.
 - A persistent local ecosystem: weather, moisture, water, vegetation, prey, predator activity, competition, depletion and regrowth. Outcomes respond to these conditions rather than unrelated event cards.
 - Immersive, Balanced and Story Focus pacing through the same rules. Routine nursery care, milestones, mortality, local movement, continuing situations, individual tendencies and experience.
 - All original ten starting species, three pack unlocks, earned Coins, duplicates, offspring, inherited traits, permanent death and surviving-offspring continuation.
-- Autosave, backup recovery, export/import and deterministic version-1-to-2 migration. The old browser storage key is retained so existing progress is discovered.
+- Autosave, backup recovery, export/import and deterministic version-1/2-to-3 migration. The old browser storage key is retained so existing progress is discovered.
 
-The full Phase 2 biological, social and ecological simulation is **not complete or scientifically calibrated**. [Implemented slices, limitations and next stages](docs/LIVING_WORLD.md).
+The biological model remains a transparent game approximation. [Phase 3 scope and remaining work](docs/PHASE3.md), [current validation](docs/PHASE3_VALIDATION.md) and [earlier Phase 2 design snapshot](docs/LIVING_WORLD.md).
 
 ## Architecture
 
@@ -35,6 +37,7 @@ The full Phase 2 biological, social and ecological simulation is **not complete 
 - `src/game/history.ts`, `calendar.ts`, `random.ts` — validated historical generation, integer-year BCE/CE/deep-time dates and saved PRNG.
 - `src/game/world.ts` — persistent local ecological feedback, resources, movement, situations and contextual narration.
 - `src/game/engine.ts` — phase resolution, mortality, pacing/skips, reproduction, rewards, packs and continuation. No React dependency.
+- `src/game/wildlife.ts`, `biology.ts`, `narration.ts`, `src/data/species-rules.ts` — connected locations, persistent neighbors, species modules and read-only narration.
 - `src/game/storage.ts` — versioned schema validation, deterministic migration and recovery.
 - `src/components/BirthSequence.tsx`, `GameplayScreen.tsx` — dedicated immersive views; `UI.tsx` shares presentation primitives.
 - `src/App.tsx` — screen/history navigation, persistence adapter and existing notebook/collection/save screens.
@@ -53,4 +56,4 @@ Playwright executes the production bundle at a Pages-style subpath, with externa
 
 Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and browser Back without server rewrites. The deployment workflow's existing source-branch restriction is unchanged. Nothing on this review branch should be published until approved.
 
-[Validation results](docs/OVERHAUL_VALIDATION.md) · [Historical model](docs/HISTORICAL_MODEL.md) · [Living-world model and continuation](docs/LIVING_WORLD.md) · [Model notes](docs/MODEL_NOTES.md) · [Assets](docs/ASSET_CREDITS.md)
+[Validation results](docs/PHASE3_VALIDATION.md) · [Historical model](docs/HISTORICAL_MODEL.md) · [Living-world model and continuation](docs/LIVING_WORLD.md) · [Model notes](docs/MODEL_NOTES.md) · [Assets](docs/ASSET_CREDITS.md)

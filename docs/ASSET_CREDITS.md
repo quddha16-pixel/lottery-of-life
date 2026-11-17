@@ -26,3 +26,8 @@ DM Sans and Libre Caslon Display are bundled through Fontsource. Both use the SI
 ## Interface art
 
 Inline line icons and the field-pack design are custom CSS/SVG. No licensed logo or third-party brand assets are used.
+
+
+## Phase 3 habitat and animal scenes
+
+`src/components/WildlifeScene.tsx` contains original vector illustrations created for Lottery of Life: elephant, wolf and ant/brood figures; savanna, woodland, open grassland, colony and marine layers. They do not derive from reference-site photographs or downloaded artwork. CSS supplies gradients, changing light and optional rain motion. Other species use the existing locally bundled, credited photographs as specimen fallbacks within habitat scenes. No new external image downloads, paid image APIs or runtime artwork services are required. The original work does not impose a new license on the repository.
