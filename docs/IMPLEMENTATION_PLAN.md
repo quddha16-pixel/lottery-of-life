@@ -2,7 +2,7 @@
 
 Repository: `quddha16-pixel/lottery-of-life`. Default branch: `main`.
 Working branch: `development/phase-1-foundation`.
-Working title: **Life Simulator**. Product strings are centralized in `src/App.tsx`.
+Official project name: **Lottery of Life**. Product strings are centralized in `src/App.tsx`.
 
 The initial checkout contained an initial README commit and the uncommitted React/TypeScript/Vite scaffold from the preceding setup task. Preserve and complete that scaffold; do not touch unrelated repositories.
 

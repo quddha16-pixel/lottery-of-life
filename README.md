@@ -1,6 +1,6 @@
-# Life Simulator — Phase 1
+# Lottery of Life — Phase 1
 
-A browser-based, day-by-day animal life simulator in `quddha16-pixel/lottery-of-life`. **Life Simulator** is a replaceable working title. This project is entirely separate from Identifier Q and Soccer Pocket GM.
+A browser-based, day-by-day animal life simulator in `quddha16-pixel/lottery-of-life`. **Lottery of Life** is the official project name. This project is entirely separate from Identifier Q and Soccer Pocket GM.
 
 ## Run locally
 
@@ -54,9 +54,13 @@ Recorded local results and environment limits: [validation report](docs/VALIDATI
 
 ## GitHub Pages preparation
 
-Relative Vite asset paths (`base: './'`) and state-based navigation work under `/lottery-of-life/` without SPA rewrite rules. `.github/workflows/ci.yml` runs tests/builds. `.github/workflows/pages.yml` is **manual dispatch only** and uploads `dist/` with the official Pages actions. Nothing is published automatically.
+Vite explicitly uses `base: '/lottery-of-life/'`. Species photos use `import.meta.env.BASE_URL`; bundled scripts, styles and fonts are emitted under the same repository path. State-based navigation needs no SPA rewrite rules. Existing Phase 1 browser storage keys are retained so changing the title does not erase saves.
 
-When ready, enable GitHub Pages with **GitHub Actions** in this repository's Settings and manually run the Pages workflow on the chosen branch. Availability for a private repository depends on the account's GitHub plan; this work does not enable billing, change repository visibility or deploy anything. Do not enable a paid plan for this project without authorization.
+`.github/workflows/pages.yml` runs on pushes to `development/phase-1-foundation`, with manual dispatch also configured. It lints, runs the engine and desktop/mobile browser tests, then uploads the exact tested `dist/` artifact. Only the deployment job receives `pages: write` and `id-token: write`. The `github-pages` environment records the deployed URL. `.github/workflows/ci.yml` provides independent CI checks.
+
+The repository's Pages setting must use **GitHub Actions** as its source, and its Pages environment must allow this development branch. Push triggering avoids relying on a manually dispatched workflow being present on the default branch (`main` still has the initial README).
+
+Pages availability for a private repository depends on the account's GitHub plan. Do not enable paid services or change the repository's visibility without authorization. Deployment status and any access blockers are recorded separately from the local test results.
 
 ## Scope and next steps
 

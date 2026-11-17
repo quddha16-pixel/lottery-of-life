@@ -103,7 +103,7 @@ function log(
   // A bounded log keeps browser saves small; permanent family and lifetime records remain.
   if (s.journal.length > 2000) s.journal.splice(0, s.journal.length - 2000);
 }
-export function createGame(seed = "life-simulator"): GameState {
+export function createGame(seed = "lottery-of-life"): GameState {
   return {
     version: 1,
     rng: seedFromText(seed),

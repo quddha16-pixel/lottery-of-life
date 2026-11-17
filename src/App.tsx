@@ -37,9 +37,9 @@ import type {
 import credits from "./data/image-credits.json";
 import "./App.css";
 
-// All replaceable product naming lives here.
+// Product branding is centralized here.
 const BRAND = {
-  title: "Life Simulator",
+  title: "Lottery of Life",
   subtitle: "A natural history of you",
   edition: "Field edition · Phase 01",
 };
@@ -356,7 +356,7 @@ function App() {
     const url = URL.createObjectURL(blob),
       link = document.createElement("a");
     link.href = url;
-    link.download = "life-simulator-save.json";
+    link.download = "lottery-of-life-save.json";
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -407,7 +407,7 @@ function App() {
         <button
           className="brand"
           onClick={() => navigate("menu")}
-          aria-label="Life Simulator overview"
+          aria-label="Lottery of Life overview"
         >
           <span className="brand-mark">
             <Icon name="leaf" size={29} />

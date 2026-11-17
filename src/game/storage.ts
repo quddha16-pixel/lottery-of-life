@@ -150,6 +150,7 @@ const schema = z
     if (s.journal.some((entry) => !s.family[entry.individualId]))
       fail("Invalid journal individual");
   });
+// Preserve the Phase 1 storage key so the branding change does not discard existing saves.
 export const SAVE_KEY = "life-simulator.save.v1";
 export const BACKUP_KEY = `${SAVE_KEY}.backup`;
 export function serialize(s: GameState): string {

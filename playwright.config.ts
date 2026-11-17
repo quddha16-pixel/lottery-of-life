@@ -6,7 +6,7 @@ export default defineConfig({
   retries: 0,
   reporter: "list",
   use: {
-    baseURL: "http://life-simulator.test/lottery-of-life/",
+    baseURL: "http://lottery-of-life.test/lottery-of-life/",
     trace: "retain-on-failure",
     launchOptions: {
       executablePath:

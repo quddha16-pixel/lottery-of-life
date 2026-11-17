@@ -17,7 +17,7 @@ import { SAVE_KEY, serialize } from "../src/game/storage";
 test.beforeEach(async ({ context }) => {
   await context.route("**/*", async (route) => {
     const url = new URL(route.request().url());
-    if (url.hostname !== "life-simulator.test") return route.abort();
+    if (url.hostname !== "lottery-of-life.test") return route.abort();
     const relative =
       decodeURIComponent(url.pathname).replace(/^\/lottery-of-life\//, "") ||
       "index.html";
@@ -263,7 +263,7 @@ test("validated imports restore save state and exports produce a JSON file", asy
       .getByRole("button", { name: "Export save as JSON", exact: false })
       .click(),
   ]);
-  expect(download.suggestedFilename()).toBe("life-simulator-save.json");
+  expect(download.suggestedFilename()).toBe("lottery-of-life-save.json");
   const s = abandonLife(
     startLife(createGame(), {
       speciesId: "bumblebee",
