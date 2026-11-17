@@ -1,0 +1,624 @@
+/* Phase 3C: the scene, a clear situation and a small set of decisions. */
+.adventure-life .rpg-scene-column {
+  position: sticky;
+  top: 16px;
+}
+.adventure-life .rpg-play-column {
+  min-width: 0;
+}
+.adventure-context {
+  border-left: 2px solid #82986a;
+  padding: 10px 14px;
+  margin: 0 0 16px;
+  background: #263b292e;
+}
+.adventure-context p {
+  margin: 0;
+  color: #dfe5cf;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.adventure-context.urgent {
+  border-color: #d8a767;
+  background: #63492c24;
+}
+.adventure-context button {
+  background: transparent;
+  color: #d9c58d;
+  font-size: 12px;
+  min-height: 34px;
+  padding: 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.field-goal {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  color: #d9c58d;
+  text-align: left;
+  font-size: 13px;
+  min-height: 44px;
+  padding: 8px 0;
+}
+.field-goal span:last-child {
+  margin-left: auto;
+}
+.next-moment {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  background: #293d29;
+  border: 1px solid #72815b65;
+  color: #ebead5;
+  text-align: left;
+  padding: 12px 14px;
+  margin-top: 10px;
+  min-height: 56px;
+  border-radius: 5px;
+}
+.next-moment span {
+  flex: 1;
+  display: grid;
+  gap: 3px;
+}
+.next-moment b {
+  font-weight: 500;
+  font-size: 14px;
+}
+.next-moment small {
+  color: #aebc9d;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.next-moment.nursery-primary {
+  background: linear-gradient(110deg, #405036, #263c2b);
+  border-color: #c7b67788;
+}
+.field-more-actions {
+  margin: 10px 0;
+}
+.field-more-actions > summary {
+  cursor: pointer;
+  color: #c9d3b8;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.field-more-actions > summary span {
+  color: #9aac8d;
+  font-size: 11px;
+}
+.field-more-actions .rpg-choices {
+  margin-top: 8px;
+}
+.field-changes {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  background: #202f23;
+  border: 1px solid #63765445;
+  color: #b8c7aa;
+  padding: 12px 14px;
+  width: 100%;
+  margin: 12px 0;
+  border-radius: 5px;
+  min-height: 44px;
+}
+.field-changes > span:first-child {
+  font-size: 9px;
+  letter-spacing: 1.8px;
+}
+.field-changes b {
+  font-weight: 400;
+  font-size: 13px;
+  color: #e1dfbf;
+}
+.field-changes > span:last-child {
+  font-size: 11px;
+  color: #b8bd91;
+}
+.field-discovery {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border-top: 1px solid #8b9f692b;
+  padding: 14px 0;
+  min-height: 48px;
+  color: #d8cf9f;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+}
+.field-discovery span {
+  margin-left: auto;
+  color: #9eae94;
+  font-size: 11px;
+}
+.scene-targets {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.scene-target {
+  position: absolute;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 44px;
+  min-height: 44px;
+  background: transparent;
+  border: 0;
+  color: #f0ead1;
+  padding: 3px;
+  text-shadow: 0 1px 4px #0c2114;
+}
+.scene-target > span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d8deb099;
+  border-radius: 50%;
+  background: #253a2780;
+  font-size: 18px;
+  line-height: 1;
+}
+.scene-target b {
+  font-size: 11px;
+  font-weight: 500;
+  background: #182c20bd;
+  border-radius: 3px;
+  padding: 2px 5px;
+  max-width: 135px;
+  line-height: 1.4;
+}
+.scene-target.player {
+  left: 43%;
+  top: 54%;
+  min-width: 80px;
+  min-height: 68px;
+}
+.scene-target.resource {
+  left: 18%;
+  top: 65%;
+}
+.scene-target.family {
+  left: 77%;
+  top: 50%;
+}
+.scene-target:hover > span,
+.scene-target:focus-visible > span {
+  background: #60704a;
+  border-color: #eedda4;
+}
+.field-dialog {
+  border: 1px solid #72815e;
+  border-radius: 12px;
+  background: #15251a;
+  color: #dfe6d2;
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  box-shadow: 0 20px 90px #000a;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.field-dialog::backdrop {
+  background: #07120ccc;
+  backdrop-filter: blur(3px);
+}
+.field-dialog-body {
+  padding: 22px;
+}
+.field-dialog header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  border-bottom: 1px solid #6c80523b;
+  margin-bottom: 15px;
+  padding-bottom: 12px;
+}
+.field-dialog h2 {
+  font: 30px var(--serif);
+  line-height: 1.15;
+  margin: 4px 0;
+}
+.field-dialog header > button {
+  margin-left: auto;
+  background: transparent;
+  color: #e0dec3;
+  font-size: 27px;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.field-dialog p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 12px 0;
+}
+.field-dialog .rpg-choices {
+  margin: 16px 0;
+}
+.field-dialog .game-action {
+  padding: 13px;
+}
+.field-dialog a {
+  color: #dcca91;
+}
+.field-dialog details {
+  border-top: 1px solid #8a9e692b;
+  padding: 10px 0;
+}
+.field-dialog summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+}
+.field-dialog .rpg-location-detail {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.field-dialog .rpg-location-detail > h2 {
+  display: none;
+}
+.field-dialog .rpg-resource-list {
+  gap: 8px;
+  margin: 12px 0;
+}
+.field-dialog .rpg-resource-list span {
+  font-size: 13px;
+}
+.field-dialog .rpg-location-detail .button {
+  white-space: normal;
+  line-height: 1.6;
+  min-height: 48px;
+  width: 100%;
+}
+.field-dialog li {
+  font-size: 14px;
+  margin: 8px 0;
+}
+.field-resource-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 18px 0;
+}
+.field-resource-grid > div {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  background: #2a3d2a;
+  border-radius: 5px;
+  font-size: 13px;
+}
+.field-resource-grid meter {
+  width: 100%;
+  height: 10px;
+}
+.field-resource-grid b {
+  font-size: 12px;
+  font-weight: 400;
+  color: #bfcea9;
+}
+.field-earned {
+  color: #dfd092;
+}
+@media (max-width: 760px) {
+  .wildlife-game .rpg-topbar {
+    min-height: 40px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .wildlife-game .rpg-topbar button {
+    min-height: 40px;
+    padding: 8px;
+  }
+  .wildlife-game .rpg-brand {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .wildlife-game .rpg-save {
+    font-size: 9px;
+  }
+  .wildlife-game .rpg-shell {
+    padding: 10px 14px 16px;
+  }
+  .wildlife-game .rpg-identity {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .wildlife-game .rpg-identity .eyebrow {
+    font-size: 9px;
+    margin-bottom: 2px;
+  }
+  .wildlife-game .rpg-identity h1 {
+    font-size: 27px;
+    line-height: 1;
+    gap: 7px;
+  }
+  .wildlife-game .rpg-identity h1 span {
+    font-size: 11px;
+  }
+  .wildlife-game .rpg-date b {
+    font-size: 17px;
+  }
+  .wildlife-game .rpg-date span {
+    font-size: 9px;
+  }
+  .adventure-life {
+    display: block;
+  }
+  .adventure-life .rpg-scene-column {
+    position: static;
+  }
+  .adventure-life .wildlife-scene {
+    aspect-ratio: 2.15;
+  }
+  .adventure-life .wildlife-scene figcaption {
+    left: 13px;
+    bottom: 10px;
+    right: 12px;
+    pointer-events: none;
+  }
+  .adventure-life .wildlife-scene figcaption > span {
+    font-size: 22px;
+  }
+  .adventure-life .scene-weather {
+    top: 9px;
+    left: 12px;
+    font-size: 10px;
+  }
+  .adventure-life .rpg-phase-row {
+    padding: 7px 0 4px;
+    min-height: 24px;
+  }
+  .adventure-life .rpg-phase-row ol {
+    gap: 13px;
+    font-size: 9px;
+  }
+  .adventure-life .rpg-phase-row > span {
+    display: none;
+  }
+  .adventure-life .rpg-vitals {
+    padding: 6px 0;
+    border: 0;
+    gap: 10px;
+  }
+  .adventure-life .meter > div {
+    font-size: 10px;
+  }
+  .adventure-life .meter-track {
+    height: 3px;
+  }
+  .adventure-life .meter > div b {
+    font-size: 11px;
+  }
+  .adventure-life .field-goal {
+    font-size: 11px;
+    min-height: 28px;
+    padding: 4px 0;
+    gap: 6px;
+  }
+  .adventure-context {
+    margin: 5px 0 10px;
+    padding: 7px 10px;
+  }
+  .adventure-context p {
+    font-size: 13px;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .adventure-context button {
+    min-height: 28px;
+    font-size: 11px;
+    padding: 4px 0 0;
+  }
+  .adventure-life .rpg-section-heading {
+    margin-bottom: 6px;
+  }
+  .adventure-life .rpg-section-heading h2 {
+    font-size: 24px;
+  }
+  .adventure-life .rpg-section-heading > span {
+    font-size: 9px;
+  }
+  .adventure-life .game-action {
+    min-height: 52px;
+    padding: 9px 11px;
+    gap: 9px;
+  }
+  .adventure-life .game-action b {
+    font-size: 14px;
+    line-height: 1.3;
+  }
+  .adventure-life .game-action small {
+    font-size: 11px;
+    line-height: 1.3;
+    margin-top: 3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .adventure-life .rpg-choices {
+    gap: 5px;
+  }
+  .adventure-life .action-symbol {
+    font-size: 17px;
+  }
+  .adventure-life .next-moment {
+    padding: 9px 11px;
+    gap: 8px;
+    min-height: 50px;
+    margin-top: 6px;
+  }
+  .adventure-life .next-moment b {
+    font-size: 13px;
+  }
+  .adventure-life .next-moment small {
+    font-size: 11px;
+  }
+  .adventure-life .field-more-actions {
+    margin: 3px 0;
+  }
+  .adventure-life .rpg-nearby {
+    margin: 10px 0;
+  }
+  .adventure-life .field-changes {
+    margin: 8px 0;
+  }
+  .adventure-life .rpg-routine {
+    margin: 10px 0;
+  }
+  .wildlife-game .rpg-notice {
+    padding: 6px 10px;
+    margin: 0 0 8px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .wildlife-game .rpg-notice p {
+    font-size: 11px;
+  }
+  .field-dialog {
+    margin: auto auto 12px;
+    border-radius: 14px;
+    max-height: calc(100dvh - 24px);
+  }
+  .field-dialog-body {
+    padding: 16px;
+  }
+  .field-dialog h2 {
+    font-size: 27px;
+  }
+  .scene-target b {
+    font-size: 10px;
+  }
+  .scene-target.resource {
+    top: 57%;
+    left: 16%;
+  }
+  .scene-target.family {
+    top: 45%;
+    left: 80%;
+  }
+  .scene-target.player {
+    top: 49%;
+  }
+  .wildlife-game .rpg-explore .rpg-map {
+    height: 300px;
+  }
+  .wildlife-game .rpg-view-heading {
+    margin-bottom: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-player,
+  .scene-rain {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.adventure-context .field-context-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #e0e5d3;
+  text-align: left;
+  width: 100%;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  min-height: 44px;
+}
+.field-context-content > span {
+  flex: 1;
+}
+.field-context-content > b {
+  font-size: 13px;
+  font-weight: 400;
+  border: 1px solid #a8bb7955;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #d8c88f;
+}
+@media (max-width: 760px) {
+  .adventure-life .rpg-phase-row {
+    margin: 4px 0;
+  }
+  .adventure-context .field-context-content {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .field-context-content > span {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .adventure-life .rpg-section-heading {
+    margin-top: 9px;
+  }
+  .wildlife-game .rpg-explore .rpg-map {
+    min-height: 280px;
+    height: 280px;
+  }
+  .adventure-context {
+    padding: 7px 10px;
+    margin-bottom: 8px;
+  }
+}
+
+.adventure-context {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adventure-context > p {
+  flex: 1;
+  margin: 0;
+}
+.adventure-context > .field-context-help {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  min-width: 32px;
+  padding: 0;
+  color: #d8c88f;
+  font-size: 16px;
+  border-radius: 4px;
+}
+@media (max-width: 760px) {
+  .adventure-context > p {
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-line-clamp: 2;
+  }
+  .adventure-context {
+    min-height: 58px;
+  }
+}

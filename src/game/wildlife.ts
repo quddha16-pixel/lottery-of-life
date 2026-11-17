@@ -112,6 +112,59 @@ export function createArea(s: GameState): LocalArea {
       y: 49,
     },
   ];
+  const routes: Record<string, [string, string][]> = {
+    bumblebee: [
+      ["home", "shade"],
+      ["home", "forage"],
+      ["forage", "water"],
+      ["forage", "edge"],
+      ["edge", "shade"],
+      ["edge", "water"],
+    ],
+    bullfrog: [
+      ["home", "water"],
+      ["home", "forage"],
+      ["forage", "water"],
+      ["forage", "edge"],
+      ["water", "shade"],
+      ["shade", "edge"],
+    ],
+    octopus: [
+      ["home", "water"],
+      ["home", "forage"],
+      ["water", "edge"],
+      ["forage", "shade"],
+      ["shade", "edge"],
+    ],
+    rabbit: [
+      ["home", "shade"],
+      ["home", "forage"],
+      ["shade", "water"],
+      ["forage", "water"],
+      ["forage", "edge"],
+    ],
+    mallard: [
+      ["home", "water"],
+      ["home", "forage"],
+      ["water", "shade"],
+      ["water", "edge"],
+      ["forage", "edge"],
+      ["shade", "forage"],
+    ],
+    seal: [
+      ["home", "water"],
+      ["home", "forage"],
+      ["water", "shade"],
+      ["forage", "edge"],
+      ["shade", "edge"],
+    ],
+  };
+  const edges = routes[a.speciesId];
+  if (edges)
+    for (const n of nodes)
+      n.links = edges
+        .filter((e) => e.includes(n.id))
+        .map((e) => (e[0] === n.id ? e[1] : e[0]));
   if (
     a.speciesId === "wolf" &&
     /steppe|tundra/i.test(s.environment!.location.habitat)
@@ -413,8 +466,7 @@ export function interactions(s: GameState, actions: Action[]): Interaction[] {
       target: companion.id,
     });
   for (const action of actions.filter(
-    (x) =>
-      !["move", "mate", "explore", "socialize", "learn", "wait"].includes(x),
+    (x) => !["move", "mate", "explore", "socialize", "wait"].includes(x),
   )) {
     if (action === "feed" && result.some((x) => x.action === "feed")) continue;
     if (
@@ -433,6 +485,9 @@ export function interactions(s: GameState, actions: Action[]): Interaction[] {
       drink: `Drink at ${node.label.toLowerCase()}`,
       evade: "Stay hidden and listen",
       care: "Provision your dependent young",
+      learn: ["robin", "meerkat", "seal"].includes(a.speciesId)
+        ? "Learn familiar calls"
+        : a.speciesId === "elephant" ? "Learn from the herd" : "Learn familiar scents",
     };
     result.push({
       id: action,

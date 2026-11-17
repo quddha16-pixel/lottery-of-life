@@ -547,7 +547,7 @@ test("ant brood cannot travel, while workers contribute through meaningful garde
   });
   await fixture(page, s);
   await expect(
-    page.getByRole("button", { name: /Grow in the nursery/ }),
+    page.getByRole("button", { name: /^Watch life unfold/ }),
   ).toBeVisible();
   await gameNav(page, "Explore").click();
   await page.getByRole("button", { name: /Leaf trail/ }).click();

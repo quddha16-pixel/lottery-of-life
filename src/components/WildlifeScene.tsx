@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { adventure } from "../game/adventure";
 import { current, PHASES, stageOf } from "../game/engine";
 import { nearby, sceneState } from "../game/wildlife";
 import { speciesById } from "../data/species";
@@ -81,7 +82,13 @@ function AnimalArt({
     );
   return null;
 }
-export function WildlifeScene({ game }: { game: GameState }) {
+export function WildlifeScene({
+  game,
+  onTarget,
+}: {
+  game: GameState;
+  onTarget?: (target: "animal" | "resource" | "family") => void;
+}) {
   const a = current(game)!,
     sp = speciesById(a.speciesId),
     scene = sceneState(game),
@@ -331,6 +338,35 @@ export function WildlifeScene({ game }: { game: GameState }) {
         {PHASES[game.phase]} · {Math.round(scene.temperature)}°C ·{" "}
         {game.environment!.weather}
       </div>
+      {onTarget && (
+        <div className="scene-targets">
+          <button
+            className="scene-target player"
+            onClick={() => onTarget("animal")}
+            aria-label={`Inspect ${a.name}`}
+          >
+            <span aria-hidden="true">＋</span>
+            <b>{a.name}</b>
+          </button>
+          <button
+            className="scene-target resource"
+            onClick={() => onTarget("resource")}
+          >
+            <span aria-hidden="true">＋</span>
+            <b>{adventure(game).profile.resource}</b>
+          </button>
+          {friends.length > 0 && (
+            <button
+              className="scene-target family"
+              onClick={() => onTarget("family")}
+              aria-label={`Interact with ${friends[0].name}`}
+            >
+              <span aria-hidden="true">＋</span>
+              <b>{friends[0].name}</b>
+            </button>
+          )}
+        </div>
+      )}
       {game.world!.water < 0.3 && (
         <span className="scene-condition">Water is receding</span>
       )}
