@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { adventure, recommended, sceneChoices } from "../game/adventure";
-import { speciesAchievements } from "../game/biology";
+import {
+  adventure,
+  recommended,
+  sceneChoices,
+  suggestedJourney,
+} from "../game/adventure";
+import {
+  speciesAchievements,
+  speciesAchievementProgress,
+} from "../game/biology";
 import { FieldDialog } from "./FieldDialog";
 import { speciesStatus } from "../game/biology";
 import { speciesById } from "../data/species";
@@ -89,7 +97,8 @@ export function GameplayScreen({
   const [focus, setFocus] = useState<
     "animal" | "resource" | "family" | "result" | "discovery" | "route" | null
   >(null);
-  const field = adventure(game);
+  const field = adventure(game),
+    journey = suggestedJourney(game);
   useEffect(() => {
     const restore = () => setTab(fromHash());
     window.addEventListener("popstate", restore);
@@ -144,8 +153,9 @@ export function GameplayScreen({
   }
   const nursery = field.immobile;
   const choiceCount = field.moment && field.stage.dependent ? 1 : 2;
-  const primary = nursery ? [] : options.slice(0, choiceCount);
-  const secondary = nursery ? options : options.slice(choiceCount);
+  const primaryCount = journey ? 1 : choiceCount;
+  const primary = nursery ? [] : options.slice(0, primaryCount);
+  const secondary = nursery ? options : options.slice(primaryCount);
   return (
     <main
       ref={main}
@@ -168,7 +178,8 @@ export function GameplayScreen({
         <section className="rpg-identity" aria-label="Animal identity">
           <div>
             <p className="eyebrow">
-              {sp.name} · {a.caste ?? a.sex}
+              {sp.name} ·{" "}
+              {a.caste && field.immobile ? "Colony young" : (a.caste ?? a.sex)}
             </p>
             <h1>
               {a.name}
@@ -297,7 +308,29 @@ export function GameplayScreen({
                         : "One phase passes"}
                     </span>
                   </div>
-                  <div className="rpg-choices">{primary.map(choice)}</div>
+                  <div className="rpg-choices">
+                    {primary.map(choice)}
+                    {journey && (
+                      <button
+                        className="field-journey"
+                        onClick={() => {
+                          setSelected(journey.node.id);
+                          setFocus("route");
+                        }}
+                      >
+                        <span aria-hidden="true">↗</span>
+                        <span>
+                          <b>Explore {journey.node.label.toLowerCase()}</b>
+                          <small>
+                            {journey.phases} phase
+                            {journey.phases === 1 ? "" : "s"} · {journey.energy}{" "}
+                            energy · preview this route
+                          </small>
+                        </span>
+                        <Icon name="arrow" size={15} />
+                      </button>
+                    )}
+                  </div>
                   {field.moment && (
                     <button
                       className={`next-moment ${nursery ? "nursery-primary" : ""}`}
@@ -847,6 +880,23 @@ export function GameplayScreen({
                   {field.memory.length} places remembered with older relatives.
                 </p>
               )}
+              <section className="field-mastery">
+                <h3>This life's discoveries</h3>
+                <p>
+                  Biological successes become part of the lifetime record. Coins
+                  are settled once, when the life ends.
+                </p>
+                {speciesAchievementProgress(a).map((step) => (
+                  <p key={step.label}>
+                    <span>
+                      {step.value >= step.target ? "✓" : "○"} {step.label}
+                    </span>
+                    <b>
+                      {step.value} / {step.target}
+                    </b>
+                  </p>
+                ))}
+              </section>
               {speciesAchievements(a).map((name) => (
                 <p className="field-earned" key={name}>
                   ✓ {name} — recorded for this lifetime
@@ -865,6 +915,32 @@ export function GameplayScreen({
                   .slice(0, 4)
                   .map((o) => choice(interactionText(game, o)))}
               </div>
+              {focus === "resource" && (
+                <div className="field-nearby-paths">
+                  <h3>Nearby paths</h3>
+                  {node.links.map((id) => {
+                    const n = area.nodes.find((n) => n.id === id)!;
+                    const route = travelEligibility(game, id);
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => {
+                          setSelected(id);
+                          setFocus("route");
+                        }}
+                      >
+                        {n.label}
+                        <span>
+                          {route.allowed
+                            ? "Preview route"
+                            : "Why is this path closed?"}{" "}
+                          ↗
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               {field.immobile && (
                 <p>
                   Your body is still developing. Inspecting the nursery is

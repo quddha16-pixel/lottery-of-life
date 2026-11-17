@@ -193,8 +193,11 @@ describe("persistent animals and contextual interaction", () => {
     expect(current(after)!.stats.energy).toBeLessThan(current(s)!.stats.energy);
     const trail = travel(s, "forage"),
       harvest = interact(trail, "cut-leaves");
-    expect(current(harvest)!.biology!.stores.substrate).toBeGreaterThan(
-      current(trail)!.biology!.stores.substrate,
+    expect(current(harvest)!.biology!.stores.leafLoad).toBeGreaterThan(0);
+    const delivered = travel(harvest, "home");
+    expect(current(delivered)!.biology!.stores.leafLoad).toBe(0);
+    expect(current(delivered)!.biology!.stores.substrate).toBeGreaterThan(
+      current(harvest)!.biology!.stores.substrate,
     );
   });
   it("supports quiet social encounters without artificial dramatic consequences", () => {

@@ -4,84 +4,9 @@ import { current, PHASES, stageOf } from "../game/engine";
 import { nearby, sceneState } from "../game/wildlife";
 import { speciesById } from "../data/species";
 import type { GameState } from "../game/types";
-import { Photo } from "./UI";
+import { HabitatDetails } from "./HabitatDetails";
+import { AnimalArt } from "./AnimalArt";
 
-// Original, small vector illustrations. No external artwork or runtime image service.
-function AnimalArt({
-  species,
-  brood = false,
-}: {
-  species: string;
-  brood?: boolean;
-}) {
-  if (brood)
-    return (
-      <g fill="#d2bea0" stroke="#6e5141" strokeWidth="2">
-        <ellipse cx="96" cy="99" rx="28" ry="42" transform="rotate(68 96 99)" />
-        <path
-          d="M72 83q15 9 13 33m1-39q18 12 14 41m1-39q16 10 13 34"
-          fill="none"
-        />
-      </g>
-    );
-  if (species === "elephant")
-    return (
-      <g stroke="#4d5452" strokeWidth="2" strokeLinejoin="round">
-        <path
-          d="M39 91Q34 57 72 49q48-10 75 22l-3 53-20 6-8-19-41 1-8 24-20-2-2-38"
-          fill="#939b92"
-        />
-        <path
-          d="m49 105-3 44q9 7 18 0l9-39m40 0 5 38q12 8 22-1l-1-46"
-          fill="#7a8780"
-        />
-        <path
-          d="M127 65q31-13 42 14l-1 30q2 23 21 16-4 21-21 16-15-4-18-37l-13-10"
-          fill="#a4aaa0"
-        />
-        <path d="M126 64q-24-9-27 13-2 28 24 28 14-4 14-22Z" fill="#7b8983" />
-        <path d="M109 70q-14 4-9 21m-57-7q-18 1-15 35" fill="none" />
-        <circle cx="156" cy="81" r="2.8" fill="#232b25" />
-        <path d="m160 98 8 9-11-3" fill="#eee3bf" />
-      </g>
-    );
-  if (species === "wolf")
-    return (
-      <g stroke="#333e3b" strokeWidth="2" strokeLinejoin="round">
-        <path d="M46 91Q19 75 10 87q-4 16 31 26" fill="#7d8175" />
-        <path
-          d="m39 94 16-29 50-5 27-21 11 22 17 4 9 16-24 13-11 14-55 5-33-1Z"
-          fill="#9c9b88"
-        />
-        <path d="m52 106-7 40 12 2 14-39m40-2 8 39 12 1-3-45" fill="#7e857a" />
-        <path
-          d="m102 67 26-42 6 23 14-20-1 32 14 7-15 25-29-5"
-          fill="#aca990"
-        />
-        <path d="m143 77 19-5 10 8-26 12-14-2" fill="#dad1ae" />
-        <path d="m128 39 3 12-10 4m18-11 4-6-1 14" fill="#625f53" />
-        <circle cx="145" cy="66" r="2.4" fill="#1c2523" />
-        <path d="m167 77 7 2-4 5-5-3" fill="#252d28" />
-        <path d="m82 73-16 22m40-25-12 25" stroke="#bdb99e" fill="none" />
-      </g>
-    );
-  if (species === "ant")
-    return (
-      <g stroke="#322820" strokeWidth="4" fill="#75513a" strokeLinecap="round">
-        <path
-          d="m90 101-24-25-25-5m46 34-27 9-18 24m53-29-10 29-15 14m38-49 18-31 20-4m-32 39 29 4 19 27m-49-25 5 28 18 14"
-          fill="none"
-        />
-        <ellipse cx="55" cy="94" rx="28" ry="20" />
-        <ellipse cx="100" cy="99" rx="18" ry="14" />
-        <ellipse cx="135" cy="90" rx="19" ry="17" />
-        <path d="m145 77 7-25 19-11m-33 32-3-23 13-17" fill="none" />
-        <circle cx="144" cy="86" r="2" fill="#151e17" />
-        <path d="m149 96 12-3m-11 6 9 5" fill="none" />
-      </g>
-    );
-  return null;
-}
 export function WildlifeScene({
   game,
   onTarget,
@@ -93,9 +18,7 @@ export function WildlifeScene({
     sp = speciesById(a.speciesId),
     scene = sceneState(game),
     uid = useId().replaceAll(":", "");
-  const supported = ["elephant", "wolf", "ant"].includes(a.speciesId),
-    brood = ["Egg", "Larva", "Pupa"].includes(stageOf(a).name),
-    night = scene.phase === "night";
+  const night = scene.phase === "night";
   const friends = nearby(game)
     .filter((n) => n.species === sp.name && n.role !== "rival")
     .slice(0, 2);
@@ -232,6 +155,22 @@ export function WildlifeScene({
             />
             <path d="m505 287q-20-45 16-43 37-19 51 25Z" fill="#a6ac78" />
           </g>
+        ) : ["meadow", "nest", "wetland", "leaf-floor", "coast"].includes(
+            scene.palette,
+          ) ? (
+          <g>
+            <path
+              d="M0 265q200-50 400 5t400-5v195H0Z"
+              fill={scene.palette === "coast" ? "#779b93" : "#688260"}
+            />
+            <path
+              d="M0 310q180-50 420 10t380-20"
+              stroke="#a0b18a"
+              strokeWidth="18"
+              fill="none"
+              opacity=".25"
+            />
+          </g>
         ) : scene.palette === "marine" ? (
           <g fill="none" stroke="#387f65" strokeWidth="12">
             <path d="M84 460q-40-80 6-160t-6-116m62 276q-40-100 6-220m520 220q-20-80 13-150t-6-80" />
@@ -272,20 +211,23 @@ export function WildlifeScene({
           fill="#243f31"
           opacity=".6"
         />
-        {supported &&
-          friends.map((n, i) => (
-            <g
-              key={n.id}
-              transform={`translate(${450 + i * 145} ${a.speciesId === "ant" ? 220 : 200}) scale(${a.speciesId === "ant" ? 0.48 : 0.72})`}
-              opacity={i ? 0.45 : 0.65}
-            >
-              <AnimalArt species={a.speciesId} />
-            </g>
-          ))}
-        {supported && (
+        <HabitatDetails game={game} />
+        {friends.map((n, i) => (
+          <g
+            key={n.id}
+            transform={`translate(${450 + i * 145} ${a.speciesId === "ant" ? 220 : 200}) scale(${a.speciesId === "ant" ? 0.48 : 0.72})`}
+            opacity={i ? 0.45 : 0.65}
+          >
+            <AnimalArt species={a.speciesId} />
+          </g>
+        ))}
+        {
           <g
             className="scene-player"
-            transform={`translate(${a.speciesId === "ant" ? 275 : scene.dependent ? 235 : 180} ${a.speciesId === "ant" ? 130 : scene.dependent ? 120 : 100}) scale(${a.speciesId === "ant" ? 1.3 : scene.dependent ? 1.2 : 1.45})`}
+            key={`${a.id}:${game.area!.ticks}`}
+            data-species={a.speciesId}
+            data-stage={stageOf(a).name}
+            transform={`translate(${a.speciesId === "ant" ? 275 : scene.dependent ? 235 : 180} ${a.speciesId === "ant" ? 130 : scene.dependent ? 120 : 100}) scale(${a.speciesId === "ant" ? 1.3 : stageOf(a).name === "Paralarva" ? 0.75 : stageOf(a).name === "Tadpole" ? 1 : scene.dependent ? 1.2 : 1.45})`}
           >
             <ellipse
               cx="102"
@@ -295,9 +237,15 @@ export function WildlifeScene({
               fill="#142820"
               opacity=".35"
             />
-            <AnimalArt species={a.speciesId} brood={brood} />
+            <AnimalArt
+              species={a.speciesId}
+              stage={stageOf(a).name}
+              ageDays={a.ageDays}
+              sex={a.sex}
+              stores={a.biology!.stores}
+            />
           </g>
-        )}
+        }
         <g fill="#aeb477" opacity=".65">
           {[30, 105, 210, 540, 700, 770].map((x, i) => (
             <path key={x} d={`m${x} 440 3-${25 + i * 3} 7 25 10-19-4 23Z`} />
@@ -322,11 +270,6 @@ export function WildlifeScene({
           </g>
         )}
       </svg>
-      {!supported && (
-        <div className="scene-specimen">
-          <Photo species={sp} />
-        </div>
-      )}
       <figcaption>
         <span>{scene.node.label}</span>
         <small>

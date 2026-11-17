@@ -39,6 +39,7 @@ export const ADVENTURES: Record<string, Adventure> = {
       [60, "Joining the workers"],
     ],
     stocks: [
+      ["leafLoad", "Carried leaves"],
       ["substrate", "Leaf material"],
       ["fungus", "Garden food"],
       ["contamination", "Waste"],
@@ -85,6 +86,8 @@ export const ADVENTURES: Record<string, Adventure> = {
     moments: [
       [1, "A first escorted walk"],
       [6, "Learning from familiar relatives"],
+      [30, "Joining family at the mud wallow"],
+      [365, "Helping relatives uncover water"],
       [1095, "Growing more independent"],
     ],
     stocks: [

@@ -426,7 +426,11 @@ export function interactions(s: GameState, actions: Action[]): Interaction[] {
         detail: "Convert effort into healthier colony food stores and service.",
         action: "socialize",
       });
-    if (node.kind === "forage")
+    if (
+      node.kind === "forage" &&
+      a.biology!.stores.leafLoad < 90 &&
+      s.world!.patches.find((p) => p.id === node.id)!.food > 0.03
+    )
       result.push({
         id: "cut-leaves",
         title: "Cut leaves for the garden",
@@ -487,7 +491,9 @@ export function interactions(s: GameState, actions: Action[]): Interaction[] {
       care: "Provision your dependent young",
       learn: ["robin", "meerkat", "seal"].includes(a.speciesId)
         ? "Learn familiar calls"
-        : a.speciesId === "elephant" ? "Learn from the herd" : "Learn familiar scents",
+        : a.speciesId === "elephant"
+          ? "Learn from the herd"
+          : "Learn familiar scents",
     };
     result.push({
       id: action,
@@ -531,7 +537,7 @@ export function applyInteraction(
       if (!target?.alive)
         throw new Error("Your caregiver is no longer available.");
       // Provisioning costs are charged by the shared feed resolver, including autonomy.
-      return `${target.name} provides what her condition allows. Nursing also costs her energy and food.`;
+      return `${target.name} shares what her condition allows. Feeding you also costs her energy and food.`;
     case "stay-close":
       if (target) {
         target.bond = clamp(target.bond + 5);
@@ -562,16 +568,15 @@ export function applyInteraction(
       a.stats.energy -= 4;
       return "Garden work improves the colony’s persistent food stores. The work costs energy.";
     case "cut-leaves":
-      a.biology!.stores.substrate = clamp(
-        a.biology!.stores.substrate + patch.food * 25,
+      a.biology!.stores.leafLoad = clamp(
+        a.biology!.stores.leafLoad + patch.food * 25,
       );
       a.biology!.skills["leaves-harvested"] = clamp(
         (a.biology!.skills["leaves-harvested"] ?? 0) + 1,
       );
       patch.food = unit(patch.food - 0.03);
-      a.colonyService += 2;
       a.stats.energy -= 5;
-      return "Leaf substrate reaches the colony. Gardening must convert these stores into fungal food.";
+      return "You carry leaf material. Bring it home so the garden can use it; gathering leaves is not the same as eating a meal.";
     case "track-prey":
       a.stats.energy -= Math.max(
         1,
@@ -876,16 +881,26 @@ export function sceneState(s: GameState) {
     node = locationNow(s),
     sp = speciesById(a.speciesId);
   const palette =
-    sp.water === "marine" || a.speciesId === "seal"
-      ? "marine"
-      : a.speciesId === "ant"
-        ? "colony"
-        : s.environment!.location.climate === "arid" ||
-            a.speciesId === "elephant"
-          ? "savanna"
-          : /steppe|tundra/i.test(s.environment!.location.habitat)
-            ? "grassland"
-            : "woodland";
+    a.speciesId === "seal"
+      ? "coast"
+      : ["bullfrog", "mallard"].includes(a.speciesId)
+        ? "wetland"
+        : a.speciesId === "bumblebee"
+          ? ["home", "shade"].includes(node.id)
+            ? "nest"
+            : "meadow"
+          : sp.water === "marine"
+            ? "marine"
+            : a.speciesId === "ant"
+              ? ["home", "shade"].includes(node.id)
+                ? "colony"
+                : "leaf-floor"
+              : s.environment!.location.climate === "arid" ||
+                  a.speciesId === "elephant"
+                ? "savanna"
+                : /steppe|tundra/i.test(s.environment!.location.habitat)
+                  ? "grassland"
+                  : "woodland";
   return {
     palette,
     phase: ["morning", "afternoon", "evening", "night"][s.phase],

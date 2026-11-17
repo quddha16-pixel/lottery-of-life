@@ -30,7 +30,7 @@ export const SPECIES_RULES: Record<string, SpeciesRules> = {
       "Fungus garden",
       "Colony entrance",
     ],
-    stores: { substrate: 40, fungus: 75, contamination: 10 },
+    stores: { substrate: 40, fungus: 75, contamination: 10, leafLoad: 0 },
     achievement: "Kept a fungus garden growing",
     source: "https://ielc.libguides.com/sdzg/factsheets/leafcutter-ant/diet",
     discovery:

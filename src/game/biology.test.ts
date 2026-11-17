@@ -73,9 +73,15 @@ describe("species have causal resource loops and capabilities", () => {
     s = ready(s, "forage");
     const fungalBefore = bio(s).stores.fungus;
     s = execute(s, "cut-leaves");
-    expect(bio(s).stores.substrate).toBeGreaterThan(0);
+    expect(bio(s).stores.leafLoad).toBeGreaterThan(0);
+    const carried = bio(s).stores.leafLoad,
+      priorStock = bio(s).stores.substrate;
     expect(bio(s).stores.fungus).toBeLessThanOrEqual(fungalBefore + 0.2);
     s = travel(s, "home");
+    expect(bio(s).stores.leafLoad).toBe(0);
+    expect(bio(s).stores.substrate).toBeGreaterThanOrEqual(
+      Math.min(100, priorStock + carried),
+    );
     const stock = bio(s).stores.substrate,
       food = bio(s).stores.fungus;
     s = execute(s, "tend-garden");

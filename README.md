@@ -2,7 +2,9 @@
 
 A day-by-day animal survival game in `quddha16-pixel/lottery-of-life`, separate from Identifier Q and Soccer Pocket GM.
 
-This branch, **`development/phase-3-wildlife-rpg`**, contains the shared Phase 3 wildlife RPG framework and mechanics for all 13 existing species, including the family-friendly presentation requirements. It is for review: **do not merge or deploy without explicit approval**. The existing Pages workflow triggers automatically only from `development/phase-1-foundation`; pushing this branch runs CI without publishing it.
+Phase 3C is being implemented in reviewable feature milestones, descending from `develop` at `170323f`. [Current scope, visual evidence and limitations](docs/phase3c/03-species-scenes.md). The original Phase 3/3B branch is preserved. **No merge or deployment without Quentin's approval.** The production Pages workflow is verified disabled; the existing public Phase 2 site remains online. The separate preview workflow is prepared in process PR #3, with hosting/settings setup still required.
+
+Completion is **Implemented → Playable (Quentin personally reviews the exact preview on his iPhone) → Released**. Automated checks and local screenshots do not establish the last two gates.
 
 ## Run
 
@@ -54,6 +56,6 @@ npm run test:e2e
 
 Playwright executes the production bundle at a Pages-style subpath, with external requests blocked. Desktop and iPhone-sized Chromium runs cover the game, navigation, save recovery, progression and layout. The suite uses `/usr/bin/chromium` when available or Playwright's installed Chromium; `PLAYWRIGHT_CHROMIUM_PATH` overrides it. A mobile-emulated run is not physical Safari certification.
 
-Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and browser Back without server rewrites. The deployment workflow's existing source-branch restriction is unchanged. Nothing on this review branch should be published until approved.
+Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and browser Back without server rewrites. Historical workflow source files remain on this feature branch; production execution is disabled in GitHub. Process-only PR #3 prepares manual gated workflows. Nothing on this review branch should be merged or published until approved.
 
 [Validation results](docs/PHASE3_VALIDATION.md) · [Historical model](docs/HISTORICAL_MODEL.md) · [Living-world model and continuation](docs/LIVING_WORLD.md) · [Model notes](docs/MODEL_NOTES.md) · [Assets](docs/ASSET_CREDITS.md)
