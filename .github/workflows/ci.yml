@@ -3,7 +3,6 @@ on:
   push:
     branches: [main, develop, integration, "development/**", "feature/**", "fix/**", "chore/**"]
   pull_request:
-    branches: [main, develop, integration]
 permissions:
   contents: read
 concurrency:

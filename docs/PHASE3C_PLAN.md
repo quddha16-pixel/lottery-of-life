@@ -1,6 +1,6 @@
 # Phase 3C — Make the living world playable
 
-Status: **proposed plan; implementation has not begun.** Quentin must approve this plan before gameplay, artwork or simulation changes start. Repository/process work is separate authorization.
+Status: **approved by Quentin for implementation in reviewable feature milestones.** This document is the design contract, not a completion report. No merge or deployment is authorized by implementation approval.
 
 ## Outcome and completion gates
 
@@ -120,4 +120,4 @@ Browser layout checks must assess a useful set of choices and visible consequenc
 
 No additional species, real-money purchases, ads, paid gambling, daily-login pressure, forced real-time waits, paid AI or paid hosting. No wholesale engine replacement. No guaranteed survival. No claim of scientific calibration from software tests.
 
-Before implementation starts, Quentin should approve this scope and the opening-experience contract. During implementation, major changes to biology, save semantics, rewards or release scope require a concrete reviewed proposal. The first deliverable after approval is the survival/feedback repair PR, not a deployment.
+Quentin approved this scope and opening-experience contract. During implementation, major changes to biology, save semantics, rewards or release scope require a concrete reviewed proposal. The first deliverable after approval is the survival/feedback repair PR, not a deployment.

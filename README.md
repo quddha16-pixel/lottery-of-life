@@ -2,7 +2,7 @@
 
 A day-by-day animal survival game in `quddha16-pixel/lottery-of-life`, separate from Identifier Q and Soccer Pocket GM.
 
-This infrastructure-review branch starts at `170323f`, preserving the Phase 3/3B framework and all earlier work. It prepares CI, separately labeled development previews and the proposed Phase 3C plan. **Phase 3C gameplay implementation has not begun. Do not merge or publish without Quentin’s explicit approval.**
+This infrastructure-review branch starts at `170323f`, preserving the Phase 3/3B framework and all earlier work. It prepares CI, separately labeled development previews and the proposed Phase 3C plan. **This infrastructure branch changes no gameplay. Phase 3C is implemented in separate feature PRs; do not merge or publish without Quentin’s explicit approval.**
 
 ## Run
 
@@ -62,6 +62,6 @@ Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and 
 
 [Release process and manual setup](docs/RELEASE_PROCESS.md) · [Proposed Phase 3C plan — not implemented](docs/PHASE3C_PLAN.md).
 
-GitHub settings writes returned 403, so owner setup is still required. The integration branch name is awaiting resolution because `development` conflicts with the preserved `development/...` branches. No merge or deployment occurred during preparation.
+GitHub settings writes returned 403, so owner setup is still required. The integration branch is `develop`, created at exactly `170323f`; historical `development/...` branches are preserved. No merge or deployment occurred during preparation.
 
 Completion means **Implemented → Playable on Quentin’s iPhone → Released after approval and public verification**. Passing CI alone is not Playable or Released.

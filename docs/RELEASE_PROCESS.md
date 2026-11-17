@@ -11,7 +11,7 @@ Prepared 17 November 2026. **Infrastructure only. No Phase 3C gameplay implement
 | `development/living-world-overhaul` | `79ca0bd1c0a19dbdc8b3d5f894943bf7425b2dc8` |
 | `development/phase-3-wildlife-rpg` | `170323f831e340c4ee52997dc716cce910070fd5` |
 
-Git cannot create a branch named `development` while `development/...` branches exist. GitHub rejected that exact request with HTTP 422. Do not rename/delete the phase branches to work around it. Quentin has been asked to choose `develop` (recommended) or `integration`. Create the chosen branch at exactly `170323f...`; record that creation separately from later infrastructure commits. Set the `INTEGRATION_BRANCH` repository variable to the chosen name when setting up previews.
+Git cannot create a branch named `development` while `development/...` branches exist. GitHub rejected that exact request with HTTP 422. Do not rename/delete the phase branches to work around it. Quentin selected `develop`. It was created and independently verified at exactly `170323f831e340c4ee52997dc716cce910070fd5`; main remains `cf5a773`. The process-only PR is #3 against develop. Set `INTEGRATION_BRANCH=develop` when setting up previews (the prepared workflow also defaults to develop).
 
 The latest source includes all six commits added since initial main; Phase 3 is two commits ahead of Phase 2 with zero commits behind. Existing phase branches remain unchanged as historical checkpoints. Normal merge commits preserve their original SHAs. Do not force-push, rebase existing history, delete phase branches or enable automatic branch deletion.
 
@@ -23,7 +23,7 @@ Target structure:
 - `chore/production-release-process`: Phase 2 baseline plus production/preview control tooling and documentation, reviewed into main after PR #1.
 - `chore/development-preview-process`: the same process tooling on Phase 3, reviewed into the chosen integration branch.
 
-No branch is automatically merged or deployed. The CI workflow covers both prospective root integration names, all legacy `development/**` branches, `main`, `feature/**`, `fix/**`, `chore/**`, and PRs targeting main/the root integration branch. The required job remains named `test` so branch rules can select a stable check.
+No branch is automatically merged or deployed. The CI workflow covers both prospective root integration names, all legacy `development/**` branches, `main`, `feature/**`, `fix/**`, `chore/**`, and all pull requests, including stacked feature reviews. The required job remains named `test` so branch rules can select a stable check.
 
 ## PRs and bootstrap ordering
 
@@ -69,6 +69,8 @@ gh api --method PATCH repos/quddha16-pixel/lottery-of-life --input docs/reposito
 
 ### 2. Production environment
 
+The existing production Pages workflow was explicitly disabled and GitHub verified `state: disabled_manually`. The already-published site remains online. Keep this workflow disabled; re-enabling it requires explicit approval after the new release controls are reviewed. No deployment flags were enabled.
+
 Settings → Environments → `github-pages`:
 
 - Required reviewer: `quddha16-pixel`. Allow that owner to approve a deployment he initiated; do not enable prevention of self-review for a sole-maintainer release process.
@@ -80,14 +82,14 @@ The environment payload is `docs/repository-settings/production-environment.json
 
 ### 3. Separate preview environment and free hosting
 
-Recommended prepared host: **a separate Cloudflare Pages Free direct-upload project**. The workflow is prepared, not run; no Cloudflare account/project or paid service was created. Quentin was offered a temporary tunnel alternative. If another host is chosen, revise this workflow before enabling it.
+Selected host, confirmed by Quentin: **a separate Cloudflare Pages Free direct-upload project**. The workflow is prepared, not run; no Cloudflare account/project or paid service was created. No temporary tunnel or paid infrastructure is used.
 
 Create an account/project on the Free plan, e.g. `lottery-of-life-preview`, as a **direct-upload** project without automatic Git-connected deployments. A CLI owner can create it with a reserved production branch name such as `preview-live`; our integration branch then uses Cloudflare's preview branch alias. The actual production game stays on GitHub Pages.
 
 Settings → Environments → create `development-preview`:
 
 - Required reviewer: `quddha16-pixel`.
-- Allowed workflow deployment ref: **main**. Main is the trusted orchestrator; the workflow independently checks and builds the exact integration SHA. The preview artifact is not main's gameplay. This avoids granting deployment credentials to development code.
+- Allowed workflow deployment ref: **main**. Main is the trusted orchestrator; the workflow independently checks and builds the exact approved development candidate SHA. The preview artifact is not main's gameplay. This avoids granting deployment credentials to development code.
 - Environment secrets: `CLOUDFLARE_API_TOKEN` (Pages-edit permission scoped to the relevant Cloudflare account) and `CLOUDFLARE_ACCOUNT_ID`.
 - Environment variable: `CLOUDFLARE_PREVIEW_PROJECT` = the separate Free project name.
 - Never paste credentials into chat, PRs, code or workflow inputs. The token is available only to the final upload step, not the untrusted-source build.
@@ -98,7 +100,7 @@ The prepared environment payload is `docs/repository-settings/preview-environmen
 
 Settings → Secrets and variables → Actions → Variables:
 
-- `INTEGRATION_BRANCH`: the approved `develop` or `integration` name.
+- `INTEGRATION_BRANCH`: `develop`.
 - `PRODUCTION_RELEASES_ENABLED`: keep `false` until production approvals and main-only environment policy are verified.
 - `DEVELOPMENT_PREVIEWS_ENABLED`: keep `false` until the separate Free preview project, environment, credentials and approval policy are verified.
 
@@ -109,10 +111,10 @@ Only then set the corresponding flag to `true` when ready for a separately appro
 The workflow must first exist on default branch main. After Quentin approves previewing an exact integration commit:
 
 1. Actions → **Development preview (not production)** → Run workflow from `main`.
-2. Enter the full approved integration SHA. Preflight confirms it matches the selected integration tip. A moved tip requires a new reviewed candidate, not silent substitution.
+2. Enter the approved source branch (`develop` or a `feature/` / `fix/` branch) and full SHA. Preflight confirms the branch tip matches that SHA and contains the current develop history. This allows iPhone review of unmerged feature work; it does not authorize merging it. A moved tip requires a newly reviewed candidate, not silent substitution.
 3. It checks out trusted tooling from main and development source at the immutable SHA, runs lint/unit/browser/build checks, and packages the existing Vite base path.
 4. The preview environment requests owner approval before upload. The upload job downloads only static artifacts and uses pinned Wrangler `4.164.0`; development build scripts never receive the Cloudflare token.
-5. Open the HTTPS link in the Actions summary on the iPhone: `https://<integration-branch>.<preview-project>.pages.dev/lottery-of-life/`.
+5. Open the HTTPS link in the Actions summary on the iPhone: the immutable deployment URL printed by Wrangler, followed by `/lottery-of-life/`. The workflow extracts and verifies that exact URL; it does not invent a live link or rely on a moving branch alias.
 6. The page title and visible ribbon say DEVELOPMENT PREVIEW; metadata says `channel: preview` and names the source SHA. This host has a different origin/storage from production. It neither copies nor overwrites production saves. Use explicit save export/import only when a migrated-copy test is intended.
 7. Record actual observations. A successful upload/metadata check is not the Playable milestone until Quentin personally tests the changed experience on his iPhone.
 
@@ -132,4 +134,4 @@ If verification fails, do not mark Released. Report the exact problem and reques
 - **Playable:** Quentin personally tests the exact candidate's new experience on his iPhone. Record preview URL/SHA and observations. Chromium emulation is additional evidence only.
 - **Released:** Quentin approves the candidate; production is updated and verified at the approved commit with actual player checks.
 
-Infrastructure preparation currently satisfies none of the missing Phase 3 player-experience gates. Phase 3C remains [a proposed plan](PHASE3C_PLAN.md), not implemented gameplay.
+Infrastructure preparation currently satisfies none of the missing Phase 3 player-experience gates. The [Phase 3C plan](PHASE3C_PLAN.md) is approved for implementation; progress is tracked in separate feature PRs. Neither this infrastructure branch nor its checks establish Phase 3C completion.
