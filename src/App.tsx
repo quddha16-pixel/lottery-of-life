@@ -1665,6 +1665,9 @@ function App() {
             </span>
             <span>A different life. The same living world.</span>
           </footer>
+          {screen === "menu" && (
+            <p className="creator-credit">Created by Quentin Warminsky</p>
+          )}
         </main>
       </div>
       {inspect && (
