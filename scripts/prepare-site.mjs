@@ -18,7 +18,7 @@ if (channel === 'production') process.exit(0);
 
 // The preview is a different HTTPS origin. This ribbon changes only built HTML,
 // never the game source, browser storage key, save schema or simulation.
-const ribbon = `<aside data-development-preview role="note" style="padding:9px 16px;background:#35311e;color:#fff0bd;font:13px/1.4 system-ui,sans-serif;text-align:center">Development preview · ${commit.slice(0, 7)} · Not a production release</aside>`;
+const ribbon = `<aside data-development-preview role="note" aria-label="Development preview · ${commit} · Not a production release" style="padding:6px 8px;background:#35311e;color:#fff0bd;font:11px/1.4 system-ui,sans-serif;text-align:center">Development preview · ${commit.slice(0, 7)} · Not released</aside><style data-preview-layout>@media(max-width:760px){.wildlife-game .adventure-life .wildlife-scene{aspect-ratio:2.6}}</style>`;
 const marked = original.replace(/<title>(.*?)<\/title>/s, '<title>DEVELOPMENT PREVIEW — $1</title>')
   .replace(/<body([^>]*)>/, `<body$1>${ribbon}`);
 if (marked === original || !marked.includes(ribbon)) throw new Error('Could not label preview HTML.');
