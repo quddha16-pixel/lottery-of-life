@@ -260,13 +260,14 @@ export function applyWorldAction(
   s: GameState,
   action: Action,
   directedTravel = false,
+  parentProvided = false,
 ): void {
   if (!s.world) return;
   const w = s.world,
     a = animal(s),
     patch = w.patches.find((p) => p.id === w.activePatch)!;
   a.experience ??= { foraging: 0, habitatKnowledge: 0, dangerMemory: 0 };
-  if (action === "feed") {
+  if (action === "feed" && !parentProvided) {
     patch.food = unit(patch.food - 0.025);
     a.experience.foraging = Math.min(
       100,

@@ -537,7 +537,7 @@ export function applyInteraction(
       if (!target?.alive)
         throw new Error("Your caregiver is no longer available.");
       // Provisioning costs are charged by the shared feed resolver, including autonomy.
-      return `${target.name} shares what her condition allows. Feeding you also costs her energy and food.`;
+      return `You ask ${target.name} for food. A meal uses her food reserves and energy; a request may fail.`;
     case "stay-close":
       if (target) {
         target.bond = clamp(target.bond + 5);
@@ -610,7 +610,7 @@ export function careFactor(s: GameState) {
           (1 - mother.hunger / 130) *
           (0.4 + mother.bond / 140),
       )
-    : 0.15;
+    : 0;
 }
 export function tickAnimals(s: GameState): string[] {
   const area = s.area!,
@@ -686,8 +686,9 @@ export function tickAnimals(s: GameState): string[] {
         n.location = links[Math.floor(random(area) * links.length)];
       }
     } else if (n.priority === "protect") {
-      if (random(area) < 0.12)
-        n.location = nextLocalStep(area, n.location, s.world!.activePatch);
+      // Once fed/rested, a parent returns along actual edges instead of
+      // waiting for a rare random return while the dependent goes hungry.
+      n.location = nextLocalStep(area, n.location, s.world!.activePatch);
     } else if (random(area) < 0.28 && (n.engagedUntil ?? 0) < area.ticks) {
       const links = area.nodes.find((x) => x.id === n.location)!.links;
       n.location = links[Math.floor(random(area) * links.length)];

@@ -550,7 +550,17 @@ function resolvePhase(
   ensureArea(s);
   ensureIndividualExperience(a);
   const dependent = stageOf(a).dependent,
+    parentProvided = dependent && /mammal|bird/i.test(sp.group),
     stats = a.stats;
+  const caregiver = parentProvided
+    ? nearby(s).find((n) => n.role === "mother")
+    : undefined;
+  const chargeCare = (hunger: number, energy: number) => {
+    if (!caregiver) return;
+    caregiver.hunger = clamp(caregiver.hunger + hunger);
+    caregiver.energy = clamp(caregiver.energy - energy);
+    caregiver.bond = clamp(caregiver.bond + 1);
+  };
   const active =
     sp.active === "night"
       ? s.phase >= 2
@@ -578,16 +588,11 @@ function resolvePhase(
         "Sensory experience accumulates around your caregivers; independence still lies ahead.";
       break;
     case "feed": {
-      if (dependent) {
-        const caregiver = nearby(s).find((n) => n.role === "mother");
-        if (caregiver) {
-          caregiver.hunger = clamp(caregiver.hunger + 9);
-          caregiver.energy = clamp(caregiver.energy - 7);
-          caregiver.bond = clamp(caregiver.bond + 3);
-        }
-      }
-      const resource =
-        env.food * (dependent ? careFactor(s) : speciesFoodFactor(s));
+      // Parent condition represents nutrition already obtained by that animal.
+      // Milk/delivered food is not grazing directly from the infant's nest patch.
+      const resource = parentProvided
+        ? (env.careQuality ?? 0.85) * careFactor(s)
+        : env.food * (dependent ? careFactor(s) : speciesFoodFactor(s));
       const success =
         random(s) <
         Math.min(
@@ -612,6 +617,8 @@ function resolvePhase(
                     (a.experience?.foraging ?? 0) / 1200) +
                 (stats.bond - 50) / 500,
         );
+      // A failed request costs a little time/energy, not a meal that never existed.
+      if (parentProvided) chargeCare(success ? 9 : 0, success ? 7 : 1);
       exposure = dependent ? 0.04 : 1;
       stats.energy -= dependent ? 0 : 7;
       if (success) {
@@ -706,10 +713,18 @@ function resolvePhase(
       break;
   }
   if (dependent && ["wait", "rest", "learn"].includes(action)) {
-    const care = (env.careQuality ?? 0.85) * env.food * careFactor(s);
+    const care =
+      (env.careQuality ?? 0.85) *
+      careFactor(s) *
+      (parentProvided ? 0.35 : env.food);
     if (random(s) < care) {
       stats.hunger -= 10;
       stats.hydration += 5;
+      if (parentProvided) {
+        chargeCare(4, 3);
+        text +=
+          " Your caregiver also provides some nourishment, using food reserves and energy.";
+      }
     }
   }
   if (journey) {
@@ -724,7 +739,7 @@ function resolvePhase(
       );
     }
   }
-  applyWorldAction(s, action, !!journey);
+  applyWorldAction(s, action, !!journey, parentProvided);
   for (const message of tickAnimals(s)) log(s, message, "milestone");
   if (stats.hunger > 75) stats.health -= (stats.hunger - 70) / 9;
   if (stats.hydration < 25) stats.health -= (30 - stats.hydration) / 6;
