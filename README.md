@@ -54,7 +54,7 @@ npm run test:e2e
 
 Playwright executes the production bundle at a Pages-style subpath, with external requests blocked. Desktop and iPhone-sized Chromium runs cover the game, navigation, save recovery, progression and layout. The suite uses `/usr/bin/chromium` when available or Playwright's installed Chromium; `PLAYWRIGHT_CHROMIUM_PATH` overrides it. A mobile-emulated run is not physical Safari certification.
 
-Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and browser Back without server rewrites. The prepared production and preview workflows are manual-only, require an exact candidate SHA and fail unless their enable flag is true. Nothing on this review branch should be merged or published until explicitly approved.
+Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and browser Back without server rewrites. The prepared production workflow is manual-only and requires an approved exact main SHA and release flag. Preview publication is isolated in the dedicated GitHub Pages repository. Nothing on this review branch should be merged or published until explicitly approved.
 
 [Validation results](docs/PHASE3_VALIDATION.md) · [Historical model](docs/HISTORICAL_MODEL.md) · [Living-world model and continuation](docs/LIVING_WORLD.md) · [Model notes](docs/MODEL_NOTES.md) · [Assets](docs/ASSET_CREDITS.md)
 
@@ -69,4 +69,4 @@ Completion means **Implemented → Playable on Quentin’s iPhone → Released a
 
 ## First iPhone preview
 
-[Simple iPhone upload instructions](docs/IPHONE_PREVIEW.md). The artifact-only packaging workflow prepares the tested Phase 3C commit `ebff789` for a separate Cloudflare Pages Free project without merging main or using deployment credentials. The manual deployment workflows remain gated; preparing/downloading a ZIP does not publish a website or establish Playable.
+[GitHub Pages-only setup on iPhone](docs/IPHONE_PREVIEW.md). The dedicated preview repository builds the selected Phase 3C commit with a separate asset path and save keys. No merge into original main, Cloudflare, secret or paid service is needed. This process branch does not deploy production.
