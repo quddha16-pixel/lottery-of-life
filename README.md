@@ -59,11 +59,11 @@ Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and 
 
 [Release process and manual setup](docs/RELEASE_PROCESS.md) · [Approved Phase 3C plan](docs/PHASE3C_PLAN.md).
 
-The prepared production and preview workflows are manual-only, require an exact candidate SHA and fail unless their enable flag is true. GitHub settings writes returned 403, so owner setup is still required. No merge or deployment occurred during preparation. All historical phase branches and commits are preserved.
+The prepared production workflow is manual-only and requires an approved exact main SHA and release flag. Preview publication is isolated in the dedicated GitHub Pages repository. GitHub settings writes returned 403, so owner setup is still required. No merge or deployment occurred during preparation. All historical phase branches and commits are preserved.
 
 Completion means **Implemented → Playable on Quentin’s iPhone → Released after approval and public verification**. Passing CI alone is not Playable or Released.
 
 
 ## First iPhone preview
 
-[Simple iPhone upload instructions](docs/IPHONE_PREVIEW.md). The artifact-only packaging workflow prepares the tested Phase 3C commit `ebff789` for a separate Cloudflare Pages Free project without merging main or using deployment credentials. The manual deployment workflows remain gated; preparing/downloading a ZIP does not publish a website or establish Playable.
+[GitHub Pages-only setup on iPhone](docs/IPHONE_PREVIEW.md). The dedicated preview repository builds the selected Phase 3C commit with a separate asset path and save keys. No merge into original main, Cloudflare, secret or paid service is needed. This process branch does not deploy production.
