@@ -2,7 +2,7 @@
 
 A day-by-day animal survival game in `quddha16-pixel/lottery-of-life`, separate from Identifier Q and Soccer Pocket GM.
 
-This branch, **`development/phase-3-wildlife-rpg`**, contains the shared Phase 3 wildlife RPG framework and mechanics for all 13 existing species, including the family-friendly presentation requirements. It is for review: **do not merge or deploy without explicit approval**. The existing Pages workflow triggers automatically only from `development/phase-1-foundation`; pushing this branch runs CI without publishing it.
+This infrastructure-review branch starts at `170323f`, preserving the Phase 3/3B framework and all earlier work. It prepares CI, separately labeled development previews and the approved Phase 3C plan. **This infrastructure branch changes no gameplay. Phase 3C is implemented in separate feature PRs; do not merge or publish without Quentin’s explicit approval.**
 
 ## Run
 
@@ -54,6 +54,19 @@ npm run test:e2e
 
 Playwright executes the production bundle at a Pages-style subpath, with external requests blocked. Desktop and iPhone-sized Chromium runs cover the game, navigation, save recovery, progression and layout. The suite uses `/usr/bin/chromium` when available or Playwright's installed Chromium; `PLAYWRIGHT_CHROMIUM_PATH` overrides it. A mobile-emulated run is not physical Safari certification.
 
-Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and browser Back without server rewrites. The deployment workflow's existing source-branch restriction is unchanged. Nothing on this review branch should be published until approved.
+Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and browser Back without server rewrites. The prepared production workflow is manual-only and requires an approved exact main SHA and release flag. Preview publication is isolated in the dedicated GitHub Pages repository. Nothing on this review branch should be merged or published until explicitly approved.
 
 [Validation results](docs/PHASE3_VALIDATION.md) · [Historical model](docs/HISTORICAL_MODEL.md) · [Living-world model and continuation](docs/LIVING_WORLD.md) · [Model notes](docs/MODEL_NOTES.md) · [Assets](docs/ASSET_CREDITS.md)
+
+## Repository and release process
+
+[Release process and manual setup](docs/RELEASE_PROCESS.md) · [Approved Phase 3C plan](docs/PHASE3C_PLAN.md).
+
+GitHub settings writes returned 403, so owner setup is still required. The integration branch is `develop`, created at exactly `170323f`; historical `development/...` branches are preserved. No merge or deployment occurred during preparation.
+
+Completion means **Implemented → Playable on Quentin’s iPhone → Released after approval and public verification**. Passing CI alone is not Playable or Released.
+
+
+## First iPhone preview
+
+[GitHub Pages-only setup on iPhone](docs/IPHONE_PREVIEW.md). The dedicated preview repository builds the selected Phase 3C commit with a separate asset path and save keys. No merge into original main, Cloudflare, secret or paid service is needed. This process branch does not deploy production.
