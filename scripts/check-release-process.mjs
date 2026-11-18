@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -44,7 +45,16 @@ test('preview labeling and nested hosting retain repository-base asset resolutio
   assert.match(page, /Development preview/);
   assert.match(page, /Not a production release/);
   assert.match(page, /DEVELOPMENT PREVIEW/);
-  assert.match(page, /170323f/);
+  assert.ok(page.includes(`<code data-source-commit`));
+  assert.ok(page.includes(`>${sha}</code>`), 'Full source SHA must be visible, not only in an aria label');
+  const manifest = JSON.parse(await readFile(path.join(site,'lottery-of-life/preview-manifest.json'),'utf8'));
+  assert.equal(manifest.commit,sha);
+  for (const [relative,digest] of Object.entries(manifest.files)) {
+    assert.equal(createHash('sha256').update(await readFile(path.join(site,'lottery-of-life',relative))).digest('hex'),digest);
+  }
+  assert.ok(manifest.files['index.html']);
+  assert.ok(manifest.files['build-info.json']);
+  assert.ok(manifest.files['assets/game.js']);
   for (const [,url] of page.matchAll(/(?:src|href)="(\/lottery-of-life\/assets\/[^"]+)"/g)) {
     assert.ok((await readFile(path.join(site, url))).length > 0, url);
   }
@@ -71,4 +81,32 @@ test('a preview cannot accidentally be promoted as production without a clean re
   assert.notEqual(run(dir, 'production').status, 0);
   const info = JSON.parse(await readFile(path.join(dir, 'dist/build-info.json'), 'utf8'));
   assert.equal(info.channel, 'preview');
+});
+
+test('online verifier rejects changed JavaScript even when source metadata still claims the correct SHA', async t => {
+  const dir = await fixture(t);
+  assert.equal(run(dir,'preview').status,0);
+  const remote=path.join(dir,'remote');
+  const {cp}=await import('node:fs/promises');
+  await cp(path.join(dir,'.preview-site/lottery-of-life'),remote,{recursive:true});
+  const stub=path.join(dir,'stub-fetch.mjs');
+  await writeFile(stub,`import {readFile} from 'node:fs/promises';import path from 'node:path';
+    globalThis.fetch=async url=>{const u=new URL(url);const relative=u.pathname.replace(/^\\/lottery-of-life\\//,'');const response=new Response(await readFile(path.join(process.env.PREVIEW_TEST_ROOT,relative)));Object.defineProperty(response,'url',{value:u.href});return response;};`);
+  const verifier=fileURLToPath(new URL('./verify-preview.mjs',import.meta.url));
+  const manifest=path.join(dir,'.preview-site/lottery-of-life/preview-manifest.json');
+  const check=()=>spawnSync(process.execPath,['--import',stub,verifier,'https://test-only.pages.dev/',sha,manifest],{encoding:'utf8',env:{...process.env,PREVIEW_TEST_ROOT:remote}});
+  let result=check();assert.equal(result.status,0,result.stderr);
+  await writeFile(path.join(remote,'assets/game.js'),'/* wrong deployed bytes */');
+  result=check();assert.notEqual(result.status,0);
+  assert.match(result.stderr,/Deployed bytes differ/);
+});
+
+test('online verifier refuses non-HTTPS and production-site URLs before any request',async t=>{
+  const dir=await fixture(t);assert.equal(run(dir,'preview').status,0);
+  const verifier=fileURLToPath(new URL('./verify-preview.mjs',import.meta.url));
+  const manifest=path.join(dir,'.preview-site/lottery-of-life/preview-manifest.json');
+  for(const url of ['http://preview.pages.dev/','https://quddha16-pixel.github.io/lottery-of-life/']){
+    const result=spawnSync(process.execPath,[verifier,url,sha,manifest],{encoding:'utf8'});
+    assert.notEqual(result.status,0);assert.match(result.stderr,/separate HTTPS Cloudflare Pages/);
+  }
 });

@@ -2,6 +2,12 @@
 
 Prepared 17 November 2026. **Infrastructure only. No Phase 3C gameplay implementation, PR merge, preview publication or production deployment is authorized by this preparation.** All new PRs require Quentin's explicit approval before merge. Each preview or production publication also requires explicit approval.
 
+## First iPhone preview: no main merge required
+
+The [iPhone preview guide](IPHONE_PREVIEW.md) now provides a shorter first-preview route: the artifact-only workflow packages the exact Phase 3C source on the process branch, and Quentin uploads its tested ZIP to a separate Cloudflare Pages Free Direct Upload project. No GitHub settings, Cloudflare API token, deployment flags or main merge are needed for this manual route. Source code and production remain unchanged. The full game SHA is visible; a manifest supports verification of the actual deployed bytes.
+
+The main-bootstrap and environment/secret instructions below describe later automated uploads/releases. They are not prerequisites for this first manual preview. No website is considered hosted or Playable merely because packaging passes.
+
 ## Preserved history and the branch-name conflict
 
 | Ref at the start of organization | SHA |
@@ -118,7 +124,7 @@ The workflow must first exist on default branch main. After Quentin approves pre
 6. The page title and visible ribbon identify DEVELOPMENT PREVIEW; the narrow in-flow ribbon is paired with a shorter mobile scene so it does not push primary choices under navigation. Its accessible label names the full SHA and states that it is not a production release. Metadata says `channel: preview` and names the source SHA. This host has a different origin/storage from production. It neither copies nor overwrites production saves. Use explicit save export/import only when a migrated-copy test is intended.
 7. Record actual observations. A successful upload/metadata check is not the Playable milestone until Quentin personally tests the changed experience on his iPhone.
 
-No ready iPhone preview URL exists merely because this workflow is prepared. Hosting setup, approved merges and an explicitly approved run remain necessary.
+No ready iPhone preview URL exists merely because this workflow is prepared. Automated uploads require hosting setup, approved workflow bootstrap and an explicitly approved run; the manual ZIP route above avoids the main-merge and secret requirements.
 
 ## Publishing production, later and only on approval
 

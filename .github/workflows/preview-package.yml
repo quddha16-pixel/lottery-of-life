@@ -1,0 +1,82 @@
+name: Package Phase 3C iPhone preview (no deployment)
+on:
+  push:
+    branches: [chore/development-preview-process]
+permissions:
+  contents: read
+concurrency:
+  group: phase3c-preview-package
+  cancel-in-progress: true
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CANDIDATE_SHA: ebff78983faa8e134fca900d93392b8ce922c3bc
+      CANDIDATE_BRANCH: feature/phase-3c-care
+    steps:
+      - name: Verify the complete, exact Phase 3C stack
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tip=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$CANDIDATE_BRANCH" --jq .object.sha)
+          test "$tip" = "$CANDIDATE_SHA" || { echo 'Candidate changed; review and pin the new commit before packaging.'; exit 1; }
+          state=$(gh api "repos/$GITHUB_REPOSITORY/compare/develop...$CANDIDATE_SHA" --jq .status)
+          [[ "$state" = ahead || "$state" = identical ]] || { echo 'Candidate must include develop history.'; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          path: controls
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - run: node --test scripts/check-release-process.mjs
+        working-directory: controls
+      - run: npm ci
+        working-directory: source
+      - run: npm run lint
+        working-directory: source
+      - run: npm test
+        working-directory: source
+      - run: npx playwright install --with-deps chromium
+        working-directory: source
+      - run: npm run test:e2e
+        working-directory: source
+      - name: Package the tested build with visible full source identity
+        env:
+          PREVIEW_TOOLING_SHA: ${{ github.sha }}
+        run: node ../controls/scripts/prepare-site.mjs preview "$CANDIDATE_SHA"
+        working-directory: source
+      - name: Upload the ZIP for manual Cloudflare Pages Free upload
+        id: artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lottery-of-life-iphone-preview-ebff789
+          path: source/.preview-site/
+          include-hidden-files: true
+          retention-days: 14
+      - name: Record the iPhone download and remaining manual step
+        env:
+          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+        run: |
+          {
+            echo '## Ready for manual preview upload — not hosted yet'
+            echo "Game source: $CANDIDATE_SHA"
+            echo "Preview tooling: $GITHUB_SHA"
+            echo "[Download the prepared ZIP]($ARTIFACT_URL)"
+            echo 'Upload this ZIP to the separate Cloudflare Pages Free project. Do not upload the GitHub source-code ZIP.'
+            echo 'No Cloudflare secrets, production permissions, merge or deployment is used by this job.'
+            echo 'The preview is not verified online or Playable until the HTTPS URL and deployed bytes are checked and Quentin tests it on his iPhone.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: preview-package-test-results
+          path: source/test-results
