@@ -2,7 +2,7 @@
 
 A day-by-day animal survival game in `quddha16-pixel/lottery-of-life`, separate from Identifier Q and Soccer Pocket GM.
 
-This infrastructure-review branch starts at `170323f`, preserving the Phase 3/3B framework and all earlier work. It prepares CI, separately labeled development previews and the proposed Phase 3C plan. **This infrastructure branch changes no gameplay. Phase 3C is implemented in separate feature PRs; do not merge or publish without Quentin’s explicit approval.**
+This infrastructure-review branch starts at `170323f`, preserving the Phase 3/3B framework and all earlier work. It prepares CI, separately labeled development previews and the approved Phase 3C plan. **This infrastructure branch changes no gameplay. Phase 3C is implemented in separate feature PRs; do not merge or publish without Quentin’s explicit approval.**
 
 ## Run
 
@@ -60,8 +60,13 @@ Vite's base is `/lottery-of-life/`; hash navigation supports static hosting and 
 
 ## Repository and release process
 
-[Release process and manual setup](docs/RELEASE_PROCESS.md) · [Proposed Phase 3C plan — not implemented](docs/PHASE3C_PLAN.md).
+[Release process and manual setup](docs/RELEASE_PROCESS.md) · [Approved Phase 3C plan](docs/PHASE3C_PLAN.md).
 
 GitHub settings writes returned 403, so owner setup is still required. The integration branch is `develop`, created at exactly `170323f`; historical `development/...` branches are preserved. No merge or deployment occurred during preparation.
 
 Completion means **Implemented → Playable on Quentin’s iPhone → Released after approval and public verification**. Passing CI alone is not Playable or Released.
+
+
+## First iPhone preview
+
+[Simple iPhone upload instructions](docs/IPHONE_PREVIEW.md). The artifact-only packaging workflow prepares the tested Phase 3C commit `ebff789` for a separate Cloudflare Pages Free project without merging main or using deployment credentials. The manual deployment workflows remain gated; preparing/downloading a ZIP does not publish a website or establish Playable.

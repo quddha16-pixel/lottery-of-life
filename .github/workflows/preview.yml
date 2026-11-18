@@ -77,6 +77,7 @@ jobs:
       - name: Label and package the development preview
         env:
           CANDIDATE_SHA: ${{ needs.authorize.outputs.candidate_sha }}
+          PREVIEW_TOOLING_SHA: ${{ github.sha }}
         run: node ../controls/scripts/prepare-site.mjs preview "$CANDIDATE_SHA"
         working-directory: source
       - uses: actions/upload-artifact@v4
