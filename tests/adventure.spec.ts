@@ -250,3 +250,40 @@ test("a fresh bumblebee develops wings, visits flowers, carries pollen and feeds
   await page.reload();
   expect(await save(page)).toEqual(kept);
 });
+
+test("a fresh wolf survives real den development and can preview a family journey after emergence", async ({
+  page,
+}) => {
+  await born(page, "wolf");
+  for (let i = 0; i < 16; i++) {
+    const s = await save(page);
+    if (s.family[s.currentId].ageDays >= 21) break;
+    const encounter = page.getByRole("button", {
+      name: "Keep a cautious distance",
+      exact: true,
+    });
+    if (await encounter.isVisible()) await encounter.click();
+    else
+      await page
+        .getByRole("button", { name: /^Continue to the next change/ })
+        .click();
+  }
+  let s = await save(page);
+  expect(s.family[s.currentId].alive).toBe(true);
+  expect(s.family[s.currentId].ageDays).toBe(21);
+  await nav(page, "Explore").click();
+  await page.getByRole("button", { name: /River bend/ }).click();
+  await expect(page.getByRole("dialog")).not.toContainText("Too young");
+  await page.screenshot({
+    path: `test-results/phase3c-wolf-emergence-${test.info().project.name}.png`,
+    animations: "disabled",
+  });
+  // Availability is still checked against the actual caregiver/condition. Inspection
+  // never teleports the family or guarantees travel when they are absent.
+  const before = await save(page);
+  expect(before).toEqual(s);
+  await page.keyboard.press("Escape");
+  await nav(page, "Life").click();
+  await page.reload();
+  expect(await save(page)).toEqual(s);
+});

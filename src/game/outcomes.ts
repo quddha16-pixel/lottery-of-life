@@ -165,10 +165,18 @@ export function urgentNeed(s: GameState): string | undefined {
   const dependent = [...sp.stages]
     .reverse()
     .find((stage) => a.ageDays >= stage.fromDay)!.dependent;
-  if (a.stats.hydration < 35)
-    return dependent && /mammal/i.test(sp.group)
-      ? "You need fluids. Ask your caregiver for food and fluids; being beside water is not enough."
-      : "You need fluids soon. Find a safe source of water or suitable food.";
+  if (a.stats.hydration < 35) {
+    if (dependent && /mammal|bird/i.test(sp.group)) {
+      const caregiver = s.area?.animals.some(
+        (n) =>
+          n.alive && n.role === "mother" && n.location === s.world?.activePatch,
+      );
+      return caregiver
+        ? "You need fluids. Ask your caregiver for food and fluids; being beside water is not enough."
+        : "You need fluids, but no caregiver is here to feed you. Stay sheltered; nearby water cannot replace care.";
+    }
+    return "You need fluids soon. Find a safe source of water or suitable food.";
+  }
   if (a.stats.hunger > 70)
     return "You need food soon. A meal depends on the resources and help available.";
   if (a.stats.health < 35 || a.stats.injury > 25)

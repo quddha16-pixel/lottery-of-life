@@ -1,0 +1,538 @@
+[
+  {
+    "id": "bumblebee",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 26,
+    "alive": true,
+    "stage": "Worker",
+    "stores": {
+      "reserves": 90.99999999999966,
+      "pollen": 0,
+      "nectar": 65,
+      "broodFood": 56.80000000000026
+    },
+    "skills": {
+      "visit:home": 1,
+      "visit:forage": 1,
+      "activity:collect-pollen": 1,
+      "activity:deliver-pollen": 1
+    },
+    "actions": [
+      "Watch life unfold\nHatching into a larva · routine care is simulated",
+      "Watch life unfold\nChanging inside the pupal cell · routine care is simulated",
+      "Watch life unfold\nEmerging as a winged worker · routine care is simulated",
+      "↗\nExplore flower meadow\n1 phase · 11 energy · preview this route",
+      "gather pollen",
+      "↗\nExplore brood nest\n1 phase · 8 energy · preview this route",
+      "deliver pollen"
+    ],
+    "feedback": "Your pollen load reaches the brood. Carrying space is free for another trip.",
+    "choices": [
+      "☾Rest hereRecover energy. You will still get hungry.",
+      "↗Explore flower meadow1 phase · 11 energy · preview this route"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "Watch life unfold\nHatching into a larva · routine care is simulated",
+          "bottom": 536.21875
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "ant",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 60,
+    "alive": true,
+    "stage": "Worker",
+    "stores": {
+      "reserves": 77.19999999999914,
+      "substrate": 40.0819972609456,
+      "fungus": 99.9,
+      "contamination": 0.8,
+      "leafLoad": 0
+    },
+    "skills": {
+      "visit:home": 1,
+      "garden-tended": 1
+    },
+    "actions": [
+      "Watch life unfold\nHatching into a larva · routine care is simulated",
+      "Watch life unfold\nBecoming a pupa · routine care is simulated",
+      "observe encounter",
+      "Watch life unfold\nJoining the workers · routine care is simulated",
+      "garden care"
+    ],
+    "feedback": "Garden work improves the colony’s persistent food stores. The work costs energy.",
+    "choices": [
+      "⌂Care for the fungus gardenHelp grow the colony’s food. This takes energy.",
+      "↗Explore leaf trail1 phase · 11 energy · preview this route"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "Watch life unfold\nHatching into a larva · routine care is simulated",
+          "bottom": 536.21875
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "rabbit",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 28,
+    "alive": true,
+    "stage": "Juvenile",
+    "stores": {
+      "reserves": 100,
+      "fiber": 0,
+      "burrow": 55
+    },
+    "skills": {
+      "visit:home": 1
+    },
+    "actions": [
+      "Continue to the next change\nFamiliar scents in the nest · routine care is simulated",
+      "observe encounter",
+      "Continue to the next change\nFirst independent grazing · routine care is simulated"
+    ],
+    "feedback": "First independent grazing. New choices may now be available. A new life stage: juvenile. New behaviors may be available.",
+    "choices": [
+      "⌂Maintain the warren tunnelsImprove persistent cover for yourself and young. Digging uses energy.",
+      "↗Explore grazing verge1 phase · 11 energy · preview this route",
+      "Continue to the next changeGrowing into the adult stage · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "◈\nSeek food from your mother\nYour caregiver may share food.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "Continue to the next change\nFamiliar scents in the nest · routine care is simulated",
+          "bottom": 590.703125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "wolf",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 21,
+    "alive": true,
+    "stage": "Pup",
+    "stores": {
+      "reserves": 100,
+      "coordination": 0
+    },
+    "skills": {
+      "visit:home": 1
+    },
+    "actions": [
+      "Continue to the next change\nLearning familiar scents · routine care is simulated",
+      "Continue to the next change\nFollowing family outside the den · routine care is simulated"
+    ],
+    "feedback": "Following family outside the den. New choices may now be available. A quiet phase restores energy. Time and hunger move on.",
+    "choices": [
+      "⌂Learn familiar scentsA full phase passes. Condition, weather and nearby animals still matter.",
+      "Continue to the next changeA more independent juvenile · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "◈\nSeek food from your mother\nYour caregiver may share food.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "Continue to the next change\nLearning familiar scents · routine care is simulated",
+          "bottom": 590.703125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "elephant",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 6,
+    "alive": true,
+    "stage": "Calf",
+    "stores": {
+      "reserves": 100,
+      "mud": 0,
+      "groundwater": 44.799999999999955
+    },
+    "skills": {
+      "visit:home": 1
+    },
+    "actions": [
+      "Continue to the next change\nA first escorted walk · routine care is simulated",
+      "Continue to the next change\nLearning from familiar relatives · routine care is simulated"
+    ],
+    "feedback": "Learning from familiar relatives. New choices may now be available. A quiet phase restores energy. Time and hunger move on.",
+    "choices": [
+      "⌂Learn from the herdA full phase passes. Condition, weather and nearby animals still matter.",
+      "Continue to the next changeJoining family at the mud wallow · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "◈\nAttempt to nurse from Mara\nYour caregiver may share food.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "Continue to the next change\nA first escorted walk · routine care is simulated",
+          "bottom": 590.703125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "mallard",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 1,
+    "alive": true,
+    "stage": "Duckling",
+    "stores": {
+      "reserves": 100,
+      "plumage": 62.19999999999999,
+      "nest": 35
+    },
+    "skills": {
+      "visit:home": 1
+    },
+    "actions": [
+      "Continue to the next change\nFlight feathers develop · routine care is simulated"
+    ],
+    "feedback": "A quiet phase restores energy. Time and hunger move on.",
+    "choices": [],
+    "layout": {
+      "controls": [
+        {
+          "text": "◈\nDabble in the shallows\nTake aquatic plants and invertebrates. Ducklings can feed themselves.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "↗\nExplore reed channel\n1 phase · 11 energy · preview this route",
+          "bottom": 597.8125
+        },
+        {
+          "text": "Continue to the next change\nFlight feathers develop · routine care is simulated",
+          "bottom": 659.203125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "octopus",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 60,
+    "alive": true,
+    "stage": "Juvenile",
+    "stores": {
+      "reserves": 100,
+      "camouflage": 0,
+      "den": 0,
+      "brood": 0
+    },
+    "skills": {
+      "visit:home": 1,
+      "visit:forage": 1,
+      "visit:water": 1
+    },
+    "actions": [
+      "Continue to the next change\nSettling onto the seabed · routine care is simulated",
+      "observe encounter",
+      "Continue to the next change\nSettling onto the seabed · routine care is simulated",
+      "observe encounter",
+      "Continue to the next change\nSettling onto the seabed · routine care is simulated",
+      "observe encounter",
+      "Continue to the next change\nSettling onto the seabed · routine care is simulated",
+      "observe encounter",
+      "Continue to the next change\nSettling onto the seabed · routine care is simulated",
+      "observe encounter",
+      "Continue to the next change\nSettling onto the seabed · routine care is simulated",
+      "Continue to the next change\nSettling onto the seabed · routine care is simulated",
+      "Continue to the next change\nSettling onto the seabed · routine care is simulated"
+    ],
+    "feedback": "Settling onto the seabed. New choices may now be available. A new life stage: juvenile. New behaviors may be available.",
+    "choices": [
+      "◌Blend into the seabedUse camouflage and learn this background. Protection fades and is never complete.",
+      "↗Explore rocky prey ground1 phase · 11 energy · preview this route",
+      "Continue to the next changeAn adult among the rocks · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "☾\nRest here\nRecover energy. You will still get hungry.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "↗\nExplore rocky prey ground\n1 phase · 11 energy · preview this route",
+          "bottom": 597.8125
+        },
+        {
+          "text": "Continue to the next change\nSettling onto the seabed · routine care is simulated",
+          "bottom": 659.203125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "meerkat",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 60,
+    "alive": true,
+    "stage": "Juvenile",
+    "stores": {
+      "reserves": 100,
+      "vigilance": 0,
+      "help": 0
+    },
+    "skills": {
+      "visit:home": 1
+    },
+    "actions": [
+      "Continue to the next change\nNoticing familiar helpers · routine care is simulated",
+      "Continue to the next change\nJoining the foraging group · routine care is simulated"
+    ],
+    "feedback": "Joining the foraging group. New choices may now be available. A new life stage: juvenile. New behaviors may be available.",
+    "choices": [
+      "♡Help the group’s youngShare food and care. Helper experience supports your social standing.",
+      "↗Explore digging ground1 phase · 11 energy · preview this route",
+      "Continue to the next changeGrowing into the adult stage · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "◈\nSeek food from your mother\nYour caregiver may share food.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "Continue to the next change\nNoticing familiar helpers · routine care is simulated",
+          "bottom": 590.703125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "bullfrog",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 5,
+    "alive": true,
+    "stage": "Tadpole",
+    "stores": {
+      "reserves": 96.99999999999989,
+      "development": 0.7,
+      "skin": 80,
+      "territory": 0
+    },
+    "skills": {
+      "visit:home": 1,
+      "activity:graze-algae": 1
+    },
+    "actions": [
+      "Watch life unfold\nHatching as a tadpole · routine care is simulated",
+      "algae search"
+    ],
+    "feedback": "Algae and pond detritus support your growing body. You still need continuous water. The search yields little food. Energy is spent without a meal.",
+    "choices": [
+      "≈Drink waterUse the water here. Stay alert for other animals.",
+      "↗Explore algal shelf1 phase · 11 energy · preview this route",
+      "Continue to the next changeMetamorphosis: legs and lungs · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "Watch life unfold\nHatching as a tadpole · routine care is simulated",
+          "bottom": 536.21875
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "raccoon",
+    "unlockFixture": false,
+    "birthAge": 0,
+    "age": 70,
+    "alive": true,
+    "stage": "Juvenile",
+    "stores": {
+      "reserves": 100,
+      "dexterity": 0
+    },
+    "skills": {
+      "visit:home": 1
+    },
+    "actions": [
+      "Continue to the next change\nLearning familiar den scents · routine care is simulated",
+      "Continue to the next change\nIndependent searching · routine care is simulated"
+    ],
+    "feedback": "Independent searching. New choices may now be available. A new life stage: juvenile. New behaviors may be available.",
+    "choices": [
+      "↗Learn this night routeRemember this exact place. Familiar routes reduce later travel costs.",
+      "↗Explore crayfish shallows1 phase · 11 energy · preview this route",
+      "Continue to the next changeGrowing into the adult stage · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "◈\nSeek food from your mother\nYour caregiver may share food.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "Continue to the next change\nLearning familiar den scents · routine care is simulated",
+          "bottom": 590.703125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "fox",
+    "unlockFixture": true,
+    "birthAge": 0,
+    "age": 60,
+    "alive": true,
+    "stage": "Juvenile",
+    "stores": {
+      "reserves": 100,
+      "parcel": 0
+    },
+    "skills": {
+      "visit:home": 1
+    },
+    "actions": [
+      "Continue to the next change\nLearning the family earth · routine care is simulated",
+      "observe encounter",
+      "Continue to the next change\nBeginning independent foraging · routine care is simulated"
+    ],
+    "feedback": "Beginning independent foraging. New choices may now be available. A new life stage: juvenile. New behaviors may be available.",
+    "choices": [
+      "☾Rest hereRecover energy. You will still get hungry.",
+      "↗Explore rodent meadow1 phase · 11 energy · preview this route",
+      "Continue to the next changeGrowing into the adult stage · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "◈\nSeek food from your mother\nYour caregiver may share food.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "Continue to the next change\nLearning the family earth · routine care is simulated",
+          "bottom": 590.703125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "robin",
+    "unlockFixture": true,
+    "birthAge": 0,
+    "age": 14,
+    "alive": true,
+    "stage": "Fledgling",
+    "stores": {
+      "reserves": 100,
+      "fat": 48,
+      "territory": 0,
+      "roost": 0
+    },
+    "skills": {
+      "visit:home": 1
+    },
+    "actions": [
+      "Continue to the next change\nFamiliar sounds around the nest · routine care is simulated",
+      "Continue to the next change\nLeaving as a fledgling · routine care is simulated"
+    ],
+    "feedback": "Leaving as a fledgling. New choices may now be available. A new life stage: fledgling. New behaviors may be available.",
+    "choices": [
+      "◈Feed before the cold nightFood can build a finite energy reserve. No meal appears without local resources.",
+      "↗Explore leaf-litter feeding ground1 phase · 11 energy · preview this route",
+      "Continue to the next changeStronger flight · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "◈\nSeek food from your mother\nYour caregiver may share food.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "Continue to the next change\nFamiliar sounds around the nest · routine care is simulated",
+          "bottom": 590.703125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  },
+  {
+    "id": "seal",
+    "unlockFixture": true,
+    "birthAge": 0,
+    "age": 28,
+    "alive": true,
+    "stage": "Juvenile",
+    "stores": {
+      "reserves": 100,
+      "diveRecovery": 100
+    },
+    "skills": {
+      "visit:home": 1
+    },
+    "actions": [
+      "Continue to the next change\nWeaning and independent feeding · routine care is simulated"
+    ],
+    "feedback": "Weaning and independent feeding. New choices may now be available. A new life stage: juvenile. New behaviors may be available.",
+    "choices": [
+      "☾Rest at the haul-outRestore dive recovery. This represents many breaths between dive bouts, not days without breathing.",
+      "↗Explore shallow fishing bay1 phase · 11 energy · preview this route",
+      "Continue to the next changeAdult coastal life · routine care is simulated"
+    ],
+    "layout": {
+      "controls": [
+        {
+          "text": "☾\nRest beside your mother\nRest ashore or at the surface. Swimming does not replace nursing.",
+          "bottom": 529.3125
+        },
+        {
+          "text": "Continue to the next change\nWeaning and independent feeding · routine care is simulated",
+          "bottom": 590.703125
+        }
+      ],
+      "navTop": 601
+    },
+    "errors": []
+  }
+]

@@ -59,3 +59,5 @@ Reproduce with `npm exec --yes --package=tsx@4.21.0 -- tsx scripts/inspect-openi
 The care correction and broader ordinary-UI signature-loop checks remain. So do physical Safari/safe-area checks, child/adult observation, fuller life-story/accessibility review and tuning based on those observations. Fine habitat geometry, full character animation and scientific calibration are not established by these illustrations.
 
 **Implemented:** this scoped scene/journey/carry milestone, subject to listed limitations. **Playable:** pending the approved secure hosted preview and Quentin's iPhone review. **Released:** no. Cloudflare setup, verified GitHub gates and explicit deployment approval remain necessary; no working iPhone URL exists yet.
+
+The subsequent [finite-care milestone](04-finite-care.md) addresses the care failure recorded above. The table and screenshots here intentionally retain milestone 3's actual results rather than rewriting its history.

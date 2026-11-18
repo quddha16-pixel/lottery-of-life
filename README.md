@@ -2,7 +2,7 @@
 
 A day-by-day animal survival game in `quddha16-pixel/lottery-of-life`, separate from Identifier Q and Soccer Pocket GM.
 
-Phase 3C is being implemented in reviewable feature milestones, descending from `develop` at `170323f`. [Current scope, visual evidence and limitations](docs/phase3c/03-species-scenes.md). The original Phase 3/3B branch is preserved. **No merge or deployment without Quentin's approval.** The production Pages workflow is verified disabled; the existing public Phase 2 site remains online. The separate preview workflow is prepared in process PR #3, with hosting/settings setup still required.
+Phase 3C is being implemented in reviewable feature milestones, descending from `develop` at `170323f`. [Current care milestone](docs/phase3c/04-finite-care.md) and [visual evidence](docs/phase3c/03-species-scenes.md). The original Phase 3/3B branch is preserved. **No merge or deployment without Quentin's approval.** The production Pages workflow is verified disabled; the existing public Phase 2 site remains online. The separate preview workflow is prepared in process PR #3, with hosting/settings setup still required.
 
 Completion is **Implemented → Playable (Quentin personally reviews the exact preview on his iPhone) → Released**. Automated checks and local screenshots do not establish the last two gates.
 
